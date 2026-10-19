@@ -1,0 +1,44 @@
+{
+  "id": 143, "type": "RC", "numeroAvenant": null, "reference": "GRE-23-112-RC-009", "intitule": "Menuiseries extérieures aluminium",
+  "version": 2, "statut": "rejected_by_directeur_exploitation", "libelle": "Rejeté par DEX", "ton": "danger", "estBc": false,
+  "projet": { "id": 102, "code": "GRE-23-112", "nom": "Groupe scolaire Jean-Macé", "ville": "Grenoble", "typologie": "Equipement", "type": "public", "maitreOuvrage": "Ville de Grenoble" },
+  "rcParent": null,
+  "avenants": [ { "id": 160, "numero": 1, "reference": "Avenant 1", "statut": "draft", "libelle": "Brouillon", "ton": "neutre" } ],
+  "identification": { "redacteur": "Karim Benali", "creation": "", "maj": null, "corpsEtat": "Menuiseries extérieures", "prestation": null, "numeroLot": "07", "dateDebut": "Janvier", "dateFin": "2027-04-15T00:00:00.000Z", "creeLe": "2026-10-05T09:00:00.000Z", "majLe": "2026-10-18T09:00:00.000Z" },
+  "montants": {
+    "budgetPrestation": "312000.50", "budgetEtude": 298400, "transfertEtude": 8500, "budgetEtudeRecale": 306900,
+    "objectifTravaux": 297693, "transfertTravaux": 4000, "objectifTravauxRecale": 301693, "ecartsSstEtude": -1520.4, "ecartsSstTravaux": -6727.4,
+    "montantRetenu": 308420.4, "montantDepuisTableauExplicatif": false, "avenant": null
+  },
+  "paiement": { "directPourcentage": 60, "directMontant": 185052.24, "coredifPourcentage": 45, "coredifMontant": 138789.18, "erreur": "La somme des pourcentages doit être égale à 100 %", "libelle": "Direct 60 % · COREDIF 45 %" },
+  "conditions": { "insertion": true, "nbreHeuresInsertion": 350, "prorata": true, "pourcentageProrata": "1,5", "retenue5Rg": true, "retenue5BonneFin": false, "dc4Modificatif": false },
+  "entreprise": { "chargeAffaire": "Laure Vidal", "email": "laure.vidal@aluconcept.example", "telephone": "04 76 45 22 10", "sousTraitantRang2": null },
+  "entreprisesConsultees": [
+    { "id": 3021, "nom": "Alu Concept Isère", "montant": 308420.4, "observations": null, "retenue": true },
+    { "id": 3022, "nom": "Menuiseries du Vercors", "montant": null, "observations": "Délai 14 semaines.", "retenue": false }
+  ],
+  "commentaire": null,
+  "signatures": [ { "par": "Karim Benali", "type": "RP", "le": "2026-10-13T09:00:00.000Z" } ],
+  "messageEntrant": { "message": "Envoi pour validation.", "par": "Karim Benali", "le": "2026-10-13T09:00:00.000Z", "pieces": [] },
+  "rejet": {
+    "auteur": "DEX", "motif": "La répartition du paiement ne tombe pas juste.", "par": "Thomas Bernard", "le": "2026-10-18T09:00:00.000Z", "vers": "Camille Lefèvre",
+    "pieces": [ { "id": 7002, "nom": "Photo menuiseries posées.jpg", "taille": 2316800, "type": "image/jpeg", "deposeLe": "2026-10-18T09:00:00.000Z", "categorie": "rejection" } ]
+  },
+  "demandeInfo": {
+    "message": "Pouvez-vous confirmer le délai ?", "par": "Nadia Haddad", "vers": "Camille Lefèvre", "le": "2026-10-18T10:00:00.000Z", "pieces": [],
+    "reponse": { "message": "Oui, 14 semaines.", "par": "Camille Lefèvre", "le": "2026-10-18T11:00:00.000Z", "pieces": [] },
+    "pourMoi": false
+  },
+  "tableau": { "genre": "COMPARATIF", "id": 802 },
+  "nombreFichiers": 2,
+  "consultation": { "autorise": false, "documentOk": false, "tableauOk": true, "tableauRequis": true, "perimee": true, "message": "Le RC a été modifié depuis votre dernière consultation : rouvrez-le avant d'approuver.", "consulteLe": "2026-10-15T07:00:00.000Z", "consulteTableauLe": "2026-10-15T07:00:00.000Z" },
+  "actions": {
+    "peutApprouver": true, "peutRejeter": true, "rejetAvecDestinataire": false, "peutDemanderInfo": true, "peutRepondreInfo": false,
+    "peutConvertirBc": false, "peutAnnulerBc": false, "signatureManquante": false, "motif": null,
+    "etape": { "sigle": "DP", "libelle": "Directeur Projet" },
+    "paiementBloquant": "La somme des pourcentages doit être égale à 100 %",
+    "destinatairesRenvoi": [],
+    "destinatairesInfo": [ { "id": 26, "nom": "Karim Benali", "role": "Responsables de Projet" }, { "id": 23, "nom": "Thomas Bernard", "role": "Directeurs d'Exploitation" } ],
+    "destinatairePropose": 26
+  }
+}

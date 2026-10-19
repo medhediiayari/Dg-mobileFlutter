@@ -1,0 +1,6 @@
+{
+  "elements": [
+    { "id": 7101, "nom": "CCTP lot 02 — Gros œuvre.pdf", "taille": 2841200, "type": "application/pdf", "deposeLe": "2026-10-10T09:00:00.000Z", "dossier": null, "description": null, "categorie": { "nom": "Marché", "couleur": "#1D539D" }, "deposePar": "Julien Marchand" },
+    { "id": 7102, "nom": "Plan R+1 indice C.pdf", "taille": 5120400, "type": "application/pdf", "deposeLe": "2026-10-11T09:00:00.000Z", "dossier": "Plans", "description": "Indice C", "categorie": null, "deposePar": null }
+  ]
+}

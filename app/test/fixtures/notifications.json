@@ -1,0 +1,7 @@
+{
+  "elements": [
+    { "id": 5016, "type": "RC_APPROVAL_REQUIRED", "titre": "RC à valider", "message": "Julien Marchand a envoyé LYO-24-031-RC-014 pour validation.", "lue": false, "le": "2026-10-19T08:12:00.000Z", "rcId": 142, "projetId": 101, "acteur": "Julien Marchand" },
+    { "id": 5010, "type": "RC_PROJECT_ASSIGNED", "titre": "Nouveau projet", "message": "Vous êtes affecté au projet ANN-25-007.", "lue": true, "le": "2026-09-23T08:00:00.000Z", "rcId": null, "projetId": 103, "acteur": null }
+  ],
+  "suivant": 5010
+}

@@ -1,0 +1,16 @@
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3Iiwic2lkIjoieCJ9.sig",
+  "refreshToken": "3f2b6c1a-9d4e-4f8a-b7c6-1e2d3c4b5a69.QWERTYUIOPASDFGHJKLZXCVBNM1234567890qwerty",
+  "expiresIn": 900,
+  "utilisateur": {
+    "id": 7, "nom": "Lefèvre", "prenom": "Camille", "email": "camille.lefevre@dggroup.fr",
+    "roleActif": { "id": 3, "nom": "Directeurs Projet", "libelle": "Directeur Projet", "etape": "DP", "sigle": "DP" },
+    "roles": [
+      { "id": 3, "nom": "Directeurs Projet", "libelle": "Directeur Projet", "etape": "DP", "sigle": "DP" },
+      { "id": 5, "nom": "Responsable Etude RC", "libelle": "Directeur d'Études", "etape": "RE", "sigle": "DE" },
+      { "id": 9, "nom": "Direction", "libelle": "Direction", "etape": null, "sigle": null }
+    ],
+    "lectureSeule": false,
+    "motifLectureSeule": null
+  }
+}

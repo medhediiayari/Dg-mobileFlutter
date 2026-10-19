@@ -1,0 +1,1 @@
+{ "api": "1.4.0", "versionMinimaleApp": "1.0.0", "sso": { "microsoft": { "tenantId": "8a3f2c1e-1111-4a2b-9c3d-123456789abc", "clientId": "0d9e8f7a-2222-4b3c-8d4e-abcdef012345" } } }

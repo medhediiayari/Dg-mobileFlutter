@@ -1,0 +1,11 @@
+{
+  "statut": "approved_by_directeur_exploitation",
+  "etapes": [
+    { "id": null, "etape": "Création du document", "etat": "completed", "le": "2026-10-03T09:00:00.000Z", "par": "Julien Marchand", "motif": null, "message": null, "vers": null, "automatique": false, "pieces": [] },
+    { "id": 1503, "etape": "Approuvé par le Directeur d'Exploitation", "etat": "completed", "le": "2026-10-17T09:00:00.000Z", "par": "Thomas Bernard", "motif": null, "message": "Validation automatique (DEX en congé, délégation)", "vers": null, "automatique": true, "pieces": [] },
+    { "id": 1504, "etape": "Demande d'information : Directeur d'Études → Directeur Projet", "etat": "info", "le": "2026-10-19T05:00:00.000Z", "par": "Nadia Haddad", "motif": null, "message": "Variante validée ?", "vers": "Camille Lefèvre", "automatique": false,
+      "pieces": [ { "id": 7004, "nom": "Avis BC variante ITE.pdf", "taille": 264000, "type": "application/pdf", "deposeLe": "2026-10-19T05:00:00.000Z", "categorie": "info_request" } ] },
+    { "id": 1505, "etape": "Rejeté par le Directeur Projet", "etat": "rejected", "le": "2026-10-19T06:00:00.000Z", "par": "Camille Lefèvre", "motif": "Pièces manquantes", "message": null, "vers": "Julien Marchand", "automatique": false, "pieces": [] },
+    { "id": null, "etape": "En attente de validation du Directeur d'Études", "etat": "current", "le": null, "par": null, "motif": null, "message": null, "vers": null, "automatique": false, "pieces": [] }
+  ]
+}

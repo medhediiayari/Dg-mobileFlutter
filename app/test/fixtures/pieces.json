@@ -1,0 +1,4 @@
+{ "succes": true, "message": "2 fichier(s) joint(s)", "pieces": [
+  { "id": 9101, "nom": "photo-1.jpg", "taille": 812300, "type": "image/jpeg", "deposeLe": "2026-10-19T09:00:00.000Z", "categorie": "approval" },
+  { "id": 9102, "nom": "Compte rendu.pdf", "taille": 120400, "type": "application/pdf", "deposeLe": "2026-10-19T09:00:00.000Z", "categorie": "approval" }
+] }

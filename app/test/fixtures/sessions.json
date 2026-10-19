@@ -1,0 +1,4 @@
+[
+  { "sid": "8b0e6f6c-5f0a-4d55-9a3e-0b6a1c2d3e4f", "appareil": "Google Pixel 8", "plateforme": "android", "creeLe": "2026-10-17T09:00:00.000Z", "utiliseLe": "2026-10-19T09:00:00.000Z", "courante": true },
+  { "sid": "1f7d2c9a-0e4b-4c3a-8f6e-5d4c3b2a1908", "appareil": null, "plateforme": null, "creeLe": "2026-09-19T09:00:00.000Z", "utiliseLe": "2026-10-16T09:00:00.000Z", "courante": false }
+]

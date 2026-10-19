@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="marine">#172D4C</color>
+    <color name="fond_lancement">#FFFFFF</color>
+    <color name="fond_lancement_nuit">#0E1A2B</color>
+    <color name="ic_launcher_background">#FFFFFF</color>
+</resources>

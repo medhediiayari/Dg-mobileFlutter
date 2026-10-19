@@ -1,0 +1,8 @@
+{
+  "genre": "EXPLICATIF", "id": 901, "codification": "GRE-23-112-TE-004-1", "statut": "cloture", "cloture": true, "fgTaux": 0.05, "commentaires": null,
+  "lignes": [
+    { "id": 9011, "designation": "Éclairage du préau", "isSousLigne": false, "osNumero": "7", "numeroDevisClient": "DV-2025-118", "montantClient": 31800, "montantStClient": 26400, "provenanceBudget": null, "montantBudgetTravaux": null, "montantStNonClient": null, "fg": 1320, "margeClient": 4080, "margeNonClient": 0 },
+    { "id": 9013, "designation": "Prises CVC", "isSousLigne": true, "osNumero": null, "numeroDevisClient": null, "montantClient": null, "montantStClient": null, "provenanceBudget": "Lot CVC", "montantBudgetTravaux": 7250, "montantStNonClient": 6700, "fg": 335, "margeClient": 0, "margeNonClient": 215 }
+  ],
+  "totaux": { "totalMontantClient": 41400, "totalMontantStClient": 34500, "totalFg": 2060, "totalBudgetTravaux": 7250, "totalMontantStNonClient": 6700, "montantAvenant": 48650, "marge": 5390, "budgetTravaux": 43530, "ecartSstObjectifTravaux": 2330 }
+}

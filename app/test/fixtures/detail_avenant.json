@@ -1,0 +1,31 @@
+{
+  "id": 144, "type": "AVENANT", "numeroAvenant": 1, "reference": "GRE-23-112-RC-004-AV1", "intitule": "Électricité courants forts",
+  "version": 1, "statut": "approved_by_responsable_projet", "libelle": "Approuvé par RP", "ton": "info", "estBc": false,
+  "projet": { "id": 102, "code": "GRE-23-112", "nom": "Groupe scolaire Jean-Macé", "ville": "Grenoble", "typologie": "Equipement", "type": "public", "maitreOuvrage": null },
+  "rcParent": { "id": 140, "reference": "GRE-23-112-RC-004" },
+  "avenants": [],
+  "identification": { "redacteur": "Karim Benali", "creation": null, "maj": null, "corpsEtat": "Électricité", "prestation": null, "numeroLot": null, "dateDebut": null, "dateFin": null, "creeLe": "2026-10-16T09:00:00.000Z", "majLe": "2026-10-18T09:00:00.000Z" },
+  "montants": {
+    "budgetPrestation": null, "budgetEtude": null, "transfertEtude": null, "budgetEtudeRecale": null, "objectifTravaux": null, "transfertTravaux": null,
+    "objectifTravauxRecale": null, "ecartsSstEtude": null, "ecartsSstTravaux": null, "montantRetenu": 48650, "montantDepuisTableauExplicatif": true,
+    "avenant": { "montantHt": 48650, "budgetTravaux": 43530, "marge": 5390, "ecart": 2330 }
+  },
+  "paiement": { "directPourcentage": null, "directMontant": null, "coredifPourcentage": null, "coredifMontant": null, "erreur": null, "libelle": null },
+  "conditions": { "insertion": false, "nbreHeuresInsertion": null, "prorata": false, "pourcentageProrata": null, "retenue5Rg": false, "retenue5BonneFin": false, "dc4Modificatif": true },
+  "entreprise": { "chargeAffaire": null, "email": null, "telephone": null, "sousTraitantRang2": null },
+  "entreprisesConsultees": [],
+  "commentaire": "OS n°7",
+  "signatures": [],
+  "messageEntrant": null,
+  "rejet": null,
+  "demandeInfo": null,
+  "tableau": { "genre": "EXPLICATIF", "id": 901 },
+  "nombreFichiers": 0,
+  "consultation": { "autorise": true, "documentOk": true, "tableauOk": true, "tableauRequis": true, "perimee": false, "message": null, "consulteLe": "2026-10-19T08:00:00.000Z", "consulteTableauLe": "2026-10-19T08:01:00.000Z" },
+  "actions": {
+    "peutApprouver": false, "peutRejeter": false, "rejetAvecDestinataire": true, "peutDemanderInfo": false, "peutRepondreInfo": false,
+    "peutConvertirBc": true, "peutAnnulerBc": false, "signatureManquante": true, "motif": null,
+    "etape": { "sigle": "SG", "libelle": "Service Gestion" }, "paiementBloquant": null,
+    "destinatairesRenvoi": [ { "id": 24, "nom": "Nadia Haddad", "role": "Responsable Etude RC" } ], "destinatairesInfo": [], "destinatairePropose": null
+  }
+}

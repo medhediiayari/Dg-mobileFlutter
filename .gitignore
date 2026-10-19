@@ -1,0 +1,22 @@
+# Environnement local : ne jamais versionner les secrets
+.env
+.env.*
+!.env.example
+
+# Dart / Flutter
+.dart_tool/
+build/
+*.log
+
+# IDE / système
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+.claude/settings.local.json
+
+# Firebase (non versionné)
+google-services.json
+GoogleService-Info.plist
+*service-account*.json

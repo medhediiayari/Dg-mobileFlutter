@@ -1,0 +1,14 @@
+{
+  "genre": "COMPARATIF", "id": 801, "nom": "TC Gros œuvre", "numero": 1, "codification": "LYO-24-031-TC-014", "lot": "Lot 02", "statut": "cloture", "justification": "Mieux-disante.",
+  "totaux": { "budgetEtude": 1382000, "transfert": -12000, "etudeRecale": 1370000, "objectif": 1289000 },
+  "entreprises": [
+    { "id": 11, "nom": "Bâti Rhône Construction", "retenue": true, "total": 1326480.5, "ecartBudget": -43519.5, "prixManquants": 0 },
+    { "id": 13, "nom": "Ossature Alpes BTP", "retenue": false, "total": 1301000, "ecartBudget": -69000, "prixManquants": 1 }
+  ],
+  "articles": [
+    { "id": 1, "designation": "Terrassements", "titre": true, "exclu": false, "transfere": false, "observation": null, "quantite": 0, "unite": null, "puBudget": 0, "ptBudget": 0,
+      "prix": [ { "entrepriseId": 11, "prixUnitaire": null, "quantite": null, "total": null }, { "entrepriseId": 13, "prixUnitaire": null, "quantite": null, "total": null } ] },
+    { "id": 2, "designation": "Terrassement en pleine masse", "titre": false, "exclu": false, "transfere": true, "observation": "Selon étude de sol", "quantite": 2850, "unite": "m³", "puBudget": 18.5, "ptBudget": 52725,
+      "prix": [ { "entrepriseId": 11, "prixUnitaire": 17.2, "quantite": 2850, "total": 49020 }, { "entrepriseId": 13, "prixUnitaire": null, "quantite": null, "total": null } ] }
+  ]
+}

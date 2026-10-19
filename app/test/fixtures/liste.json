@@ -1,0 +1,26 @@
+{
+  "elements": [
+    {
+      "id": 142, "type": "RC", "numeroAvenant": null, "reference": "LYO-24-031-RC-014", "intitule": "Gros œuvre — bâtiment A",
+      "projet": { "id": 101, "code": "LYO-24-031", "nom": "Résidence Les Tilleuls", "ville": "Villeurbanne" },
+      "statut": "approved_by_responsable_projet", "libelle": "Approuvé par RP", "ton": "info", "bucket": "pending",
+      "entreprise": { "nom": "Bâti Rhône Construction", "montant": 1326480.5 },
+      "dernierEvenement": { "libelle": "Envoyé pour validation au Directeur Projet", "par": "Julien Marchand", "le": "2026-10-19T08:12:00.000Z" },
+      "aTraiter": true, "infoPourMoi": false, "estBc": false,
+      "consultationRequise": "Consultez le RC avant d'approuver.",
+      "majLe": "2026-10-19T08:12:00.000Z"
+    },
+    {
+      "id": 144, "type": "AVENANT", "numeroAvenant": 1, "reference": "GRE-23-112-RC-004 — Avenant 1", "intitule": "Électricité courants forts",
+      "projet": { "id": 102, "code": null, "nom": null, "ville": "Grenoble" },
+      "statut": "rejected_by_service_gestion_to_directeur_projet", "libelle": "Rejeté par SG → DP", "ton": "alerte", "bucket": null,
+      "entreprise": null, "dernierEvenement": null,
+      "aTraiter": false, "infoPourMoi": true, "estBc": true, "consultationRequise": null,
+      "majLe": "2026-10-18T10:00:00.000Z"
+    }
+  ],
+  "page": 1, "total": 27, "aSuivre": true,
+  "compteurs": { "toReceive": 1, "pending": 2, "approved": 12, "rejected": 3, "aTraiter": 4, "infoPourMoi": 1 },
+  "libellesBuckets": { "toReceive": "À recevoir", "pending": "En attente", "approved": "Validés", "rejected": "Rejetés / renvoyés" },
+  "enAttenteReception": 2
+}

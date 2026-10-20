@@ -1,17 +1,49 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/utils/parcours.dart';
 import '../theme.dart';
 
-/// Le fil du parcours : les cinq étapes du circuit en chevrons, comme ceux du
-/// logo DG Flow. Franchies en bleu moyen, en cours en bleu profond (orange si
-/// le document a été renvoyé), à venir en bleu très pâle. Lors d'un renvoi, les
-/// étapes qui avaient validé avant le renvoi passent en bleu clair : elles
-/// devront revoir le document.
+/// État d'une étape du fil.
+enum _Etat { fait, courant, renvoi, brouillon, rejete, aVenir }
+
+/// États des cinq étapes RP · DP · DEX · DE · SG d'après la position du document.
+List<_Etat> _etats(PositionParcours pos) {
+  final n = etapesCircuit.length;
+  return [
+    for (var i = 0; i < n; i++)
+      switch (pos.mode) {
+        ModeParcours.termine => _Etat.fait,
+        ModeParcours.brouillon => i == 0 ? _Etat.brouillon : _Etat.aVenir,
+        ModeParcours.attente =>
+          i < pos.index
+              ? _Etat.fait
+              : i == pos.index
+              ? _Etat.courant
+              : _Etat.aVenir,
+        ModeParcours.renvoi =>
+          i < pos.index
+              ? _Etat.fait
+              : i == pos.index
+              ? _Etat.renvoi
+              : i == pos.origine
+              ? _Etat.rejete
+              : _Etat.aVenir,
+      },
+  ];
+}
+
+/// Le fil du parcours, comme la frise horizontale du web (`RCProgressionBoard`) :
+/// cinq pastilles RP · DP · DEX · DE · SG — franchie `bg-emerald-500` + coche,
+/// en cours `bg-blue-500` + horloge et anneau `ring-blue-200` (orange si le
+/// document a été renvoyé, gris pour un brouillon), étape qui a rejeté
+/// `bg-red-500` + croix, à venir `bg-slate-200` + numéro. Liaisons de 2 px :
+/// émeraude après une étape franchie, rouge vers un rejet, gris sinon ; sigles
+/// sous les pastilles.
 ///
-/// [anime] : à la première apparition, les chevrons s'allument un à un jusqu'à
+/// [anime] : à la première apparition, les étapes s'allument une à une jusqu'à
 /// l'étape en cours (désactivé si l'utilisateur réduit les animations).
 class FilParcours extends StatefulWidget {
   const FilParcours({required this.statut, this.grand = false, this.anime = false, super.key});
@@ -53,132 +85,164 @@ class _FilParcoursState extends State<FilParcours> with SingleTickerProviderStat
   Widget build(BuildContext context) {
     final p = context.dg;
     final pos = positionParcours(widget.statut);
+    final etats = _etats(pos);
     final echelle = math.min(MediaQuery.textScalerOf(context).scale(1), 1.35);
-    final h = (widget.grand ? 34.0 : 24.0) * echelle;
-    final renvoiCouleur = context.sombre ? const Color(0xFFB8620F) : p.alerte;
-
-    Color fond(int i) {
-      if (pos.mode == ModeParcours.termine) return p.chevronMoyen;
-      if (i < pos.index) return p.chevronMoyen;
-      if (i == pos.index) {
-        if (pos.mode == ModeParcours.renvoi) return renvoiCouleur;
-        if (pos.mode == ModeParcours.brouillon) return p.texteTertiaire;
-        return p.chevronProfond;
-      }
-      if (pos.mode == ModeParcours.renvoi && pos.origine != null && i <= pos.origine!) return p.chevronClair;
-      return p.chevronVide;
-    }
-
-    Color encre(int i) {
-      final f = fond(i);
-      if (f == p.chevronVide) return p.encreChevronVide;
-      if (f == p.chevronClair) return context.sombre ? p.texte : p.marine;
-      return Colors.white;
-    }
+    final diametre = (widget.grand ? 30.0 : 24.0) * echelle;
+    final tailleSigle = (widget.grand ? 11.0 : 10.0) * echelle;
 
     return Semantics(
       label: 'Parcours : ${pos.phrase}',
       container: true,
       excludeSemantics: true,
-      child: SizedBox(
-        height: h,
-        width: double.infinity,
-        child: AnimatedBuilder(
-          animation: _anim,
-          builder: (context, _) {
-            final t = Curves.easeOutCubic.transform(_anim.value);
-            final n = etapesCircuit.length;
-            return CustomPaint(
-              painter: _PeintreFil(
-                fonds: [
-                  for (var i = 0; i < n; i++)
-                    Color.lerp(p.chevronVide, fond(i), ((t * (n + 0.5)) - i).clamp(0.0, 1.0))!,
-                ],
-                encres: [
-                  for (var i = 0; i < n; i++)
-                    Color.lerp(p.encreChevronVide, encre(i), ((t * (n + 0.5)) - i).clamp(0.0, 1.0))!,
-                ],
-                courant: pos.mode == ModeParcours.termine ? -1 : pos.index,
-                taille: (widget.grand ? 14.0 : 12.0) * echelle,
-              ),
-            );
-          },
-        ),
+      child: AnimatedBuilder(
+        animation: _anim,
+        builder: (context, _) {
+          final t = Curves.easeOutCubic.transform(_anim.value);
+          final n = etapesCircuit.length;
+          // Avancement de l'allumage de l'étape i (0 → 1).
+          double allume(int i) => ((t * (n + 0.5)) - i).clamp(0.0, 1.0);
+          return LayoutBuilder(
+            builder: (context, c) {
+              final largeur = c.maxWidth / n;
+              return SizedBox(
+                height: diametre + 4 + tailleSigle * 1.3,
+                child: Stack(
+                  children: [
+                    for (var i = 0; i < n - 1; i++)
+                      Positioned(
+                        left: (i + 0.5) * largeur + diametre / 2 + 4,
+                        width: math.max(0, largeur - diametre - 8),
+                        top: diametre / 2 - 1,
+                        height: 2,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Color.lerp(
+                              p.gris.bordDoux,
+                              _couleurLiaison(p, etats[i], etats[i + 1]),
+                              allume(i + 1),
+                            ),
+                            borderRadius: BorderRadius.circular(1),
+                          ),
+                        ),
+                      ),
+                    Row(
+                      children: [
+                        for (var i = 0; i < n; i++)
+                          SizedBox(
+                            width: largeur,
+                            child: _Pastille(
+                              index: i,
+                              etat: etats[i],
+                              allume: allume(i),
+                              diametre: diametre,
+                              tailleSigle: tailleSigle,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
 }
 
-class _PeintreFil extends CustomPainter {
-  _PeintreFil({required this.fonds, required this.encres, required this.courant, required this.taille});
+/// Liaison entre deux étapes : `emerald-400` après une étape franchie,
+/// `red-400` vers l'étape qui a rejeté, `slate-200` sinon.
+Color _couleurLiaison(Palette p, _Etat de, _Etat vers) {
+  if (vers == _Etat.rejete) return Tw.red400;
+  if (de == _Etat.fait) return Tw.emerald400;
+  return p.gris.bordDoux;
+}
 
-  final List<Color> fonds;
-  final List<Color> encres;
-  final int courant;
-  final double taille;
+class _Pastille extends StatelessWidget {
+  const _Pastille({
+    required this.index,
+    required this.etat,
+    required this.allume,
+    required this.diametre,
+    required this.tailleSigle,
+  });
+
+  final int index;
+  final _Etat etat;
+  final double allume;
+  final double diametre;
+  final double tailleSigle;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final n = etapesCircuit.length;
-    final h = size.height;
-    final pointe = (h * 0.4).roundToDouble();
-    const ecart = 3.5;
-    // Les chevrons s'emboîtent : chaque segment recouvre la pointe du précédent, moins l'écart.
-    final w = (size.width + (pointe - ecart) * (n - 1)) / n;
-    final pas = w - pointe + ecart;
-    for (var i = 0; i < n; i++) {
-      final x = i * pas;
-      final chemin = Path()
-        ..moveTo(x, 0)
-        ..lineTo(x + w - pointe, 0)
-        ..lineTo(x + w, h / 2)
-        ..lineTo(x + w - pointe, h)
-        ..lineTo(x, h);
-      if (i > 0) chemin.lineTo(x + pointe, h / 2);
-      chemin.close();
-      final peinture = Paint()
-        ..color = fonds[i]
-        ..isAntiAlias = true;
-      canvas.drawPath(chemin, peinture);
-      // Contour de même couleur, joints arrondis : angles adoucis comme ceux du logo.
-      canvas.drawPath(
-        chemin,
-        peinture
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.4
-          ..strokeJoin = StrokeJoin.round,
-      );
+  Widget build(BuildContext context) {
+    final p = context.dg;
+    final (fond, encre, anneau) = switch (etat) {
+      _Etat.fait => (p.emeraude.plein, p.emeraude.vif, null),
+      _Etat.courant => (p.bleu.plein, p.bleu.vif, p.bleu.bordDoux),
+      _Etat.renvoi => (p.orange.plein, p.orange.vif, p.orange.bordDoux),
+      _Etat.brouillon => (p.gris.plein, p.gris.vif, p.gris.bordDoux),
+      _Etat.rejete => (p.rouge.plein, p.rouge.vif, null),
+      _Etat.aVenir => (p.gris.bordDoux, p.texteDiscret, null),
+    };
+    final icone = switch (etat) {
+      _Etat.fait => LucideIcons.check,
+      _Etat.courant || _Etat.brouillon => LucideIcons.clock,
+      _Etat.renvoi => LucideIcons.undo2,
+      _Etat.rejete => LucideIcons.x,
+      _Etat.aVenir => null,
+    };
+    final enCours = etat == _Etat.courant || etat == _Etat.renvoi || etat == _Etat.brouillon;
 
-      final debut = x + (i == 0 ? 0 : pointe);
-      final fin = x + w - pointe / 2;
-      final texte = TextPainter(
-        text: TextSpan(
-          text: etapesCircuit[i].sigle,
-          style: TextStyle(
-            fontFamily: Polices.condensee,
-            fontWeight: i == courant ? FontWeight.w700 : FontWeight.w600,
-            fontSize: taille,
-            height: 1,
-            color: encres[i],
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: diametre,
+          height: diametre,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Color.lerp(p.gris.bordDoux, fond, allume),
+            shape: BoxShape.circle,
+            boxShadow: [
+              if (anneau != null && allume > 0) BoxShadow(color: anneau.withValues(alpha: allume), spreadRadius: 2.5),
+              if (etat == _Etat.fait && !context.sombre && allume > 0)
+                BoxShadow(
+                  color: p.emeraude.bordDoux.withValues(alpha: allume),
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
+            ],
+          ),
+          child: icone == null
+              ? Text(
+                  '${index + 1}',
+                  style: Typo.petit.copyWith(
+                    fontSize: diametre * 0.42,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
+                    color: p.texteDiscret,
+                  ),
+                )
+              : Opacity(
+                  opacity: allume,
+                  child: Icon(icone, size: diametre * 0.55, color: Colors.white),
+                ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          etapesCircuit[index].sigle,
+          maxLines: 1,
+          overflow: TextOverflow.clip,
+          style: Typo.sigle.copyWith(
+            fontSize: tailleSigle,
+            fontWeight: enCours ? FontWeight.w700 : FontWeight.w600,
+            height: 1.2,
+            color: Color.lerp(p.texteDiscret, encre, allume),
           ),
         ),
-        textDirection: TextDirection.ltr,
-        maxLines: 1,
-      )..layout(maxWidth: math.max(0, fin - debut));
-      texte.paint(canvas, Offset(debut + (fin - debut - texte.width) / 2, (h - texte.height) / 2));
-    }
-  }
-
-  @override
-  bool shouldRepaint(_PeintreFil old) =>
-      old.taille != taille || old.courant != courant || !_egales(old.fonds, fonds) || !_egales(old.encres, encres);
-
-  static bool _egales(List<Color> a, List<Color> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
+      ],
+    );
   }
 }
 
@@ -192,13 +256,18 @@ class _PeintreFil extends CustomPainter {
   final p = context.dg;
   final pos = positionParcours(statut);
   if (infoPourMoi) {
-    return (texte: 'Une information vous est demandée', icone: Icons.forum_rounded, couleur: p.action, fort: true);
+    return (
+      texte: 'Une information vous est demandée',
+      icone: LucideIcons.messageCircleQuestion,
+      couleur: p.ambre.vif,
+      fort: true,
+    );
   }
   if (decideur) {
     if (pos.mode == ModeParcours.brouillon) {
       return (
         texte: 'Brouillon à finaliser sur DG Flow web',
-        icone: Icons.edit_note_rounded,
+        icone: LucideIcons.filePen,
         couleur: p.texteSecondaire,
         fort: true,
       );
@@ -207,17 +276,17 @@ class _PeintreFil extends CustomPainter {
       return (
         texte:
             'Renvoyé par le ${etapesCircuit[pos.origine!].sigle}, ${pos.index == 0 ? 'à corriger sur DG Flow web' : 'à vous de reprendre'}',
-        icone: Icons.undo_rounded,
-        couleur: p.alerte,
+        icone: LucideIcons.undo2,
+        couleur: p.orange.vif,
         fort: true,
       );
     }
-    return (texte: 'À vous de décider', icone: Icons.radio_button_checked_rounded, couleur: p.action, fort: true);
+    return (texte: 'À vous de décider', icone: LucideIcons.circleDot, couleur: p.action, fort: true);
   }
   return (
     texte: pos.phrase,
-    icone: pos.mode == ModeParcours.termine ? Icons.verified_rounded : null,
-    couleur: pos.mode == ModeParcours.termine ? p.succes : p.texteSecondaire,
+    icone: pos.mode == ModeParcours.termine ? LucideIcons.checkCircle : null,
+    couleur: pos.mode == ModeParcours.termine ? p.emeraude.vif : p.texteSecondaire,
     fort: false,
   );
 }

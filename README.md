@@ -5,8 +5,10 @@ circuit (Directeur Projet → Directeur d'Exploitation → Directeur d'Études �
 consultent, approuvent, rejettent ou renvoient les **RC et avenants**, demandent ou répondent à une
 information, et chacun suit le parcours de ses documents.
 
-Même principe que l'application React Native (`mobile RC/`), interface retravaillée (thème
-DG Flow, mode sombre, fil du parcours en chevrons, décisions en feuilles modales…).
+Même principe que l'application React Native (`mobile RC/`), avec **le design du web DG Flow** :
+mêmes couleurs, mêmes polices (IBM Plex Sans / Mono), mêmes icônes (Lucide), mêmes codes visuels
+pour les statuts, le parcours et les décisions. Toutes les références graphiques relevées dans le
+web et leur équivalent Flutter sont dans **[`docs/design-web.md`](docs/design-web.md)**.
 
 **L'application est uniquement un front.** Ses API sont servies par **DG Flow web** (Next.js,
 `C:\Users\user\Desktop\dgflow`), sous le préfixe **`/mobile/v1`** :
@@ -76,9 +78,10 @@ flutterDgflow/
 ├── app/               ← application Flutter (README propre : app/README.md)
 │   ├── lib/core/      ← client API, modèles, session, push, mode démonstration
 │   ├── lib/features/  ← écrans : connexion, À traiter, Suivi, fiche, tableau, décision, alertes, profil
-│   ├── lib/ui/        ← thème clair / sombre, composants, fil du parcours
+│   ├── lib/ui/        ← jetons du web (jetons_web.dart), thème clair / sombre, composants
 │   └── test/          ← 67 tests (modèles, client HTTP, démonstration, écrans)
-└── docs/captures/     ← 25 captures d'écran (démonstration, clair / sombre, mode réel)
+├── docs/design-web.md ← design du web repris par l'app : couleurs, polices, icônes, composants
+└── docs/captures/     ← captures d'écran (design du web, clair et sombre)
 ```
 
 ---
@@ -191,9 +194,9 @@ En production, l'API doit être en **HTTPS** (nom public du web) : passer
 
 ## Ce qui a été vérifié
 
-- **App** : `flutter analyze` sans problème, 67 tests verts, APK debug construit, parcours complet en
-  démonstration sur émulateur Android (25 captures dans `docs/captures/`), mode réel jusqu'à
-  l'écran de connexion.
+- **App** : `flutter analyze` sans problème, 67 tests verts, parcours complet en démonstration sur
+  émulateur Android avec le design du web, clair et sombre (12 captures dans `docs/captures/`),
+  mode réel jusqu'à l'écran de connexion.
 - **API `/mobile/v1` (web)** : TypeScript sans erreur sur les fichiers mobiles, 13 tests unitaires
   (jetons, configuration, enveloppe des routes, `/meta`), et **608/608 réponses de lecture
   identiques** à l'API mobile React Native sur la base de développement (liste, fiche, tableau,

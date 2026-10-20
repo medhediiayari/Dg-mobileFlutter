@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/models/models.dart';
@@ -14,13 +15,26 @@ import 'decision/decision_sheet.dart';
 
 typedef OuvrirChemin = Future<void> Function(String chemin);
 
+/// Écart signé : négatif `text-red-600`, positif `text-green-700` (marge du web).
 Color? _couleurEcart(BuildContext context, double? v) {
   if (v == null || v == 0) return null;
-  return v < 0 ? context.dg.danger : context.dg.succes;
+  return v < 0 ? context.dg.rouge.vif : context.dg.vert.fonce;
 }
 
 String? _partPaiement(double? pourcentage, double? montant) =>
     pourcentage == null && montant == null ? null : '${Format.pourcentage(pourcentage)}, ${Format.euros(montant)}';
+
+/// Bon de commande : `bg-blue-100 text-[#0061A7] border-blue-300` + ShoppingCart.
+Teinte teinteBonDeCommande(Palette p) => Teinte(
+  fondDoux: p.bleu.fondDoux,
+  fond: p.bleu.fond,
+  bordDoux: p.bleu.bordDoux,
+  bord: p.bleu.bord,
+  plein: p.bleu.plein,
+  vif: p.action,
+  fonce: p.actionFonce,
+  texte: p.action,
+);
 
 /// Contenu de l'onglet « Fiche ».
 class ContenuFiche extends StatelessWidget {
@@ -34,6 +48,8 @@ class ContenuFiche extends StatelessWidget {
     final p = context.dg;
     final c = d.conditions;
     final e = d.entreprise;
+    // Entreprise retenue : le vert du tableau comparatif (`#517A52`), éclairci en sombre.
+    final retenue = context.sombre ? p.vert.vif : Marque.retenuTexte;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -44,6 +60,7 @@ class ContenuFiche extends StatelessWidget {
         if (d.entreprisesConsultees.isNotEmpty)
           Section(
             titre: 'Entreprises consultées (${d.entreprisesConsultees.length})',
+            icone: LucideIcons.building2,
             child: Column(
               children: [
                 for (final (i, ent) in d.entreprisesConsultees.indexed)
@@ -65,19 +82,21 @@ class ContenuFiche extends StatelessWidget {
                                 ent.nom,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: (ent.retenue ? Typo.corpsFort : Typo.corps).copyWith(color: p.texte),
+                                style: (ent.retenue ? Typo.corpsFort : Typo.corps).copyWith(
+                                  color: ent.retenue ? retenue : p.texte,
+                                ),
                               ),
                               if (ent.retenue)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 2),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.verified_rounded, size: 14, color: p.succes),
+                                      Icon(LucideIcons.checkCircle, size: 14, color: retenue),
                                       const SizedBox(width: 4),
                                       Flexible(
                                         child: Text(
                                           'Entreprise retenue',
-                                          style: Typo.petit.copyWith(color: p.succes, fontWeight: FontWeight.w600),
+                                          style: Typo.petit.copyWith(color: retenue, fontWeight: FontWeight.w600),
                                         ),
                                       ),
                                     ],
@@ -97,7 +116,10 @@ class ContenuFiche extends StatelessWidget {
                         const SizedBox(width: Espace.m),
                         Text(
                           Format.euros(ent.montant),
-                          style: Typo.montant.copyWith(color: ent.retenue ? p.succes : p.texte),
+                          style: Typo.montant.copyWith(
+                            color: ent.retenue ? retenue : p.texte,
+                            fontWeight: ent.retenue ? FontWeight.w700 : FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
@@ -107,6 +129,7 @@ class ContenuFiche extends StatelessWidget {
           ),
         Section(
           titre: 'Paiement et conditions',
+          icone: LucideIcons.banknote,
           child: Column(
             children: [
               LigneInfo(
@@ -118,7 +141,7 @@ class ContenuFiche extends StatelessWidget {
                 valeur: _partPaiement(d.paiement.coredifPourcentage, d.paiement.coredifMontant),
               ),
               if (d.paiement.erreur != null)
-                LigneInfo(libelle: 'Contrôle', valeur: d.paiement.erreur, couleur: p.danger),
+                LigneInfo(libelle: 'Contrôle', valeur: d.paiement.erreur, couleur: p.rouge.vif),
               LigneInfo(
                 libelle: 'Insertion',
                 valeur: c.insertion
@@ -139,6 +162,7 @@ class ContenuFiche extends StatelessWidget {
         ),
         Section(
           titre: 'Identification',
+          icone: LucideIcons.info,
           child: Column(
             children: [
               LigneInfo(libelle: "Maître d'ouvrage", valeur: d.projet.maitreOuvrage),
@@ -159,6 +183,7 @@ class ContenuFiche extends StatelessWidget {
         if (e.aUnContact)
           Section(
             titre: 'Contact entreprise',
+            icone: LucideIcons.contact,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: Espace.s),
               child: Column(
@@ -167,17 +192,25 @@ class ContenuFiche extends StatelessWidget {
                   if (e.chargeAffaire != null && e.chargeAffaire!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: Espace.xs, bottom: Espace.xs),
-                      child: Text(e.chargeAffaire!, style: Typo.corpsFort.copyWith(color: p.texte)),
+                      child: Row(
+                        children: [
+                          Icon(LucideIcons.user, size: 18, color: p.texteSecondaire),
+                          const SizedBox(width: Espace.s + 2),
+                          Expanded(
+                            child: Text(e.chargeAffaire!, style: Typo.corpsFort.copyWith(color: p.texte)),
+                          ),
+                        ],
+                      ),
                     ),
                   if (e.telephone != null && e.telephone!.isNotEmpty)
                     _Contact(
-                      icone: Icons.call_outlined,
+                      icone: LucideIcons.phone,
                       valeur: e.telephone!,
                       uri: Uri(scheme: 'tel', path: e.telephone!.replaceAll(RegExp(r'\s'), '')),
                     ),
                   if (e.email != null && e.email!.isNotEmpty)
                     _Contact(
-                      icone: Icons.mail_outline_rounded,
+                      icone: LucideIcons.mail,
                       valeur: e.email!,
                       uri: Uri(scheme: 'mailto', path: e.email!),
                     ),
@@ -190,12 +223,14 @@ class ContenuFiche extends StatelessWidget {
         if (d.commentaire != null && d.commentaire!.isNotEmpty)
           Section(
             titre: 'Commentaire',
+            icone: LucideIcons.messageSquare,
             padding: const EdgeInsets.all(Espace.l),
             child: SelectableText(d.commentaire!, style: Typo.corps.copyWith(color: p.texte)),
           ),
         if (d.signatures.isNotEmpty)
           Section(
             titre: 'Signatures apposées',
+            icone: LucideIcons.signature,
             child: Column(
               children: [
                 for (final (i, s) in d.signatures.indexed)
@@ -210,19 +245,22 @@ class ContenuFiche extends StatelessWidget {
         if (d.rcParent != null)
           Section(
             titre: "RC d'origine",
+            icone: LucideIcons.fileText,
             child: _Lien(libelle: d.rcParent!.reference, onTap: () => context.push('/rc/${d.rcParent!.id}')),
           ),
         if (d.avenants.isNotEmpty)
           Section(
             titre: 'Avenants (${d.avenants.length})',
+            icone: LucideIcons.layers,
             child: Column(
               children: [
                 for (final (i, av) in d.avenants.indexed)
                   _Lien(
                     libelle: av.reference,
+                    avenant: true,
                     detail: positionParcours(av.statut).phrase,
                     couleurDetail: positionParcours(av.statut).mode == ModeParcours.termine
-                        ? p.succes
+                        ? p.emeraude.vif
                         : p.texteSecondaire,
                     separe: i < d.avenants.length - 1,
                     onTap: () => context.push('/rc/${av.id}'),
@@ -251,17 +289,19 @@ class _Bandeaux extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Demande d'information : ambre ; reçue = `border-2 border-amber-300`.
         if (info != null && info.reponse == null)
           Bandeau(
-            ton: Ton.info,
-            icone: Icons.forum_outlined,
+            teinte: p.ambre,
+            fort: info.pourMoi,
+            icone: LucideIcons.messageCircleQuestion,
             titre: info.pourMoi
                 ? '${info.par ?? 'On'} vous demande une information'
                 : 'Information demandée à ${info.vers ?? '—'}',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (info.message != null) Text(info.message!, style: Typo.corps.copyWith(color: p.texte)),
+                if (info.message != null) Text(info.message!),
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(Format.dateHeure(info.le), style: Typo.petit.copyWith(color: p.texteSecondaire)),
@@ -270,15 +310,16 @@ class _Bandeaux extends StatelessWidget {
               ],
             ),
           ),
+        // Motif du rejet : rouge ; renvoi vers un autre rôle (`*_to_*`) : orange.
         if (rejet != null)
           Bandeau(
-            ton: Ton.danger,
-            icone: Icons.undo_rounded,
+            teinte: d.ton == Ton.alerte ? p.orange : p.rouge,
+            icone: LucideIcons.xCircle,
             titre: 'Motif du renvoi${rejet.auteur != null ? ' (${rejet.auteur})' : ''}',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (rejet.motif != null) Text(rejet.motif!, style: Typo.corps.copyWith(color: p.texte)),
+                if (rejet.motif != null) Text(rejet.motif!),
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
@@ -291,16 +332,16 @@ class _Bandeaux extends StatelessWidget {
               ],
             ),
           )
+        // Message du valideur précédent : `bg-green-50 border-green-200`.
         else if (entrant != null && ((entrant.message?.isNotEmpty ?? false) || entrant.pieces.isNotEmpty))
           Bandeau(
-            ton: Ton.succes,
-            icone: Icons.chat_bubble_outline_rounded,
+            teinte: p.vert,
+            icone: LucideIcons.messageSquare,
             titre: 'Message de ${entrant.par ?? "l'étape précédente"}',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (entrant.message != null && entrant.message!.isNotEmpty)
-                  Text(entrant.message!, style: Typo.corps.copyWith(color: p.texte)),
+                if (entrant.message != null && entrant.message!.isNotEmpty) Text(entrant.message!),
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(Format.dateHeure(entrant.le), style: Typo.petit.copyWith(color: p.texteSecondaire)),
@@ -363,6 +404,7 @@ class _SyntheseState extends State<_Synthese> {
 
     return Section(
       titre: 'Synthèse',
+      icone: LucideIcons.calculator,
       droite: m.montantDepuisTableauExplicatif
           ? Text('selon le tableau explicatif', style: Typo.petit.copyWith(color: p.texteTertiaire))
           : null,
@@ -370,18 +412,18 @@ class _SyntheseState extends State<_Synthese> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Première tuile pleine largeur : le montant engagé.
+          // Première tuile pleine largeur : le montant engagé (`font-extrabold text-[#172D4C]`).
           Padding(
             padding: const EdgeInsets.fromLTRB(Espace.l, Espace.l, Espace.l, Espace.m),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(tuiles.first.libelle, style: Typo.petit.copyWith(color: p.texteSecondaire)),
-                const SizedBox(height: 2),
+                Text(tuiles.first.libelle.toUpperCase(), style: Typo.surTitre.copyWith(color: p.texteTertiaire)),
+                const SizedBox(height: 4),
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: Text(tuiles.first.valeur, style: Typo.montantFort.copyWith(color: p.texte)),
+                  child: Text(tuiles.first.valeur, style: Typo.montantFort.copyWith(color: p.titre)),
                 ),
                 // Engagé face au budget étude : pertinent pour un RC. Pour un avenant, le
                 // montant client dépasse normalement le budget travaux (c'est la marge).
@@ -395,6 +437,7 @@ class _SyntheseState extends State<_Synthese> {
           if (tuiles.length > 1)
             Container(
               decoration: BoxDecoration(
+                color: context.sombre ? null : p.gris.fondDoux,
                 border: Border(top: BorderSide(color: p.bordure)),
               ),
               child: IntrinsicHeight(
@@ -417,7 +460,11 @@ class _SyntheseState extends State<_Synthese> {
                                 alignment: Alignment.centerLeft,
                                 child: Text(
                                   t.valeur,
-                                  style: Typo.montant.copyWith(fontSize: 17.5, color: t.couleur ?? p.texte),
+                                  style: Typo.montant.copyWith(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: t.couleur ?? p.texte,
+                                  ),
                                 ),
                               ),
                             ],
@@ -452,7 +499,7 @@ class _SyntheseState extends State<_Synthese> {
                       AnimatedRotation(
                         turns: _detail ? 0.5 : 0,
                         duration: const Duration(milliseconds: 200),
-                        child: Icon(Icons.expand_more_rounded, size: 20, color: p.action),
+                        child: Icon(LucideIcons.chevronDown, size: 18, color: p.action),
                       ),
                     ],
                   ),
@@ -511,7 +558,7 @@ class _Jauge extends StatelessWidget {
     final p = context.dg;
     final ratio = montant / budget;
     final depasse = ratio > 1;
-    final couleur = depasse ? p.danger : p.succes;
+    final couleur = depasse ? p.rouge.plein : p.emeraude.plein;
     final pourcent = (ratio * 100).round();
     return Semantics(
       label: '$pourcent % du $libelleBudget',
@@ -524,13 +571,13 @@ class _Jauge extends StatelessWidget {
               final echelle = depasse ? ratio : 1.0;
               final largeurBudget = c.maxWidth / echelle;
               return SizedBox(
-                height: 10,
+                height: 8,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
                     Positioned.fill(
                       child: DecoratedBox(
-                        decoration: BoxDecoration(color: p.chevronVide, borderRadius: BorderRadius.circular(5)),
+                        decoration: BoxDecoration(color: p.gris.bordDoux, borderRadius: BorderRadius.circular(4)),
                       ),
                     ),
                     TweenAnimationBuilder<double>(
@@ -546,7 +593,7 @@ class _Jauge extends StatelessWidget {
                             widthFactor: v,
                             heightFactor: 1,
                             child: DecoratedBox(
-                              decoration: BoxDecoration(color: couleur, borderRadius: BorderRadius.circular(5)),
+                              decoration: BoxDecoration(color: couleur, borderRadius: BorderRadius.circular(4)),
                             ),
                           ),
                         ),
@@ -556,7 +603,7 @@ class _Jauge extends StatelessWidget {
                       left: largeurBudget - 1,
                       top: -3,
                       bottom: -3,
-                      child: Container(width: 2, color: p.texte.withValues(alpha: 0.55)),
+                      child: Container(width: 2, color: p.titre.withValues(alpha: 0.6)),
                     ),
                   ],
                 ),
@@ -568,7 +615,7 @@ class _Jauge extends StatelessWidget {
             depasse
                 ? '$pourcent % du $libelleBudget : dépassement de ${Format.euros(montant - budget, arrondi: true)}'
                 : '$pourcent % du $libelleBudget',
-            style: Typo.petit.copyWith(color: depasse ? p.danger : p.texteSecondaire),
+            style: Typo.petit.copyWith(color: depasse ? p.rouge.vif : p.texteSecondaire),
           ),
         ],
       ),
@@ -621,12 +668,17 @@ class _AvantDeDecider extends StatelessWidget {
       ],
     ];
     final faites = conditions.where((c) => c.ok).length;
+    final complet = faites == conditions.length;
 
     return Section(
       titre: 'Avant de décider',
-      droite: Text(
-        '$faites / ${conditions.length}',
-        style: Typo.montant.copyWith(fontSize: 15, color: faites == conditions.length ? p.succes : p.alerte),
+      icone: LucideIcons.listChecks,
+      // Compteur façon badge du web : approuvés vert, en attente orange.
+      droite: Pastille(
+        libelle: '$faites / ${conditions.length}',
+        teinte: complet ? p.vert : p.orange,
+        icone: complet ? LucideIcons.checkCircle : LucideIcons.clock,
+        petite: true,
       ),
       child: Column(
         children: [
@@ -642,10 +694,10 @@ class _AvantDeDecider extends StatelessWidget {
                     duration: const Duration(milliseconds: 300),
                     transitionBuilder: (e, a) => ScaleTransition(scale: a, child: e),
                     child: Icon(
-                      c.ok ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                      c.ok ? LucideIcons.checkCircle : LucideIcons.circle,
                       key: ValueKey(c.ok),
-                      size: 23,
-                      color: c.ok ? p.succes : p.alerte,
+                      size: 21,
+                      color: c.ok ? p.vert.vif : p.orange.vif,
                     ),
                   ),
                   const SizedBox(width: Espace.m),
@@ -712,74 +764,98 @@ class _DocumentsState extends ConsumerState<_Documents> {
     if (mounted) setState(() => _enCours = null);
   }
 
+  /// Libellé d'un téléchargement, avec sa progression pendant l'export.
+  String _libelleExport(String quoi, String libelle) {
+    if (_enCours != quoi) return libelle;
+    final v = _progression;
+    return v == null ? 'Export en cours…' : 'Export ${(v * 100).round()} %';
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = context.dg;
     final d = widget.d;
-    Widget roue() =>
-        SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2.4, value: _progression));
-    final lignes = <(IconData, String, String?, Widget?, VoidCallback)>[
-      if (d.tableau != null)
-        (
-          Icons.table_chart_outlined,
-          d.nomTableau,
-          d.consultation.tableauOk ? 'Consulté' : 'Pas encore consulté',
-          d.consultation.tableauOk ? Icon(Icons.check_circle_rounded, size: 21, color: p.succes) : null,
-          () => widget.onOuvrir('/rc/${d.id}/tableau'),
-        ),
-      (
-        Icons.folder_open_outlined,
-        'Fichiers du dossier (${d.nombreFichiers})',
-        null,
-        null,
-        () => widget.onOuvrir('/rc/${d.id}/fichiers'),
-      ),
-      (
-        Icons.download_outlined,
-        '${d.estAvenant ? "L'avenant" : 'Le RC'} en Excel',
-        d.estAvenant ? 'Modèle FIN 1-2' : 'Modèle FIN 1-1',
-        _enCours == 'document' ? roue() : null,
-        () => _telecharger('document'),
-      ),
-      if (d.tableau != null)
-        (
-          Icons.download_outlined,
-          '${d.nomTableau} en Excel',
-          null,
-          _enCours == 'tableau' ? roue() : null,
-          () => _telecharger('tableau'),
-        ),
-    ];
+    final libre = _enCours == null;
+    final tableauOk = d.consultation.tableauOk;
+
+    // Boutons d'action des cartes RC du web (`border-2 border-*-300 text-*-600`) :
+    // tableau indigo (Eye), fichiers orange (Folder), exports bleu (Download).
+    Widget bouton(Teinte t, IconData icone, String libelle, VoidCallback onTap) =>
+        BoutonContour(teinte: t, icone: icone, libelle: libelle, onPressed: libre ? onTap : null);
+
     return Section(
       titre: 'Documents',
-      padding: EdgeInsets.zero,
+      icone: LucideIcons.folderOpen,
+      padding: const EdgeInsets.all(Espace.m),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final (i, (icone, libelle, detail, droite, onTap)) in lignes.indexed)
-            InkWell(
-              onTap: _enCours == null ? onTap : null,
-              child: Container(
-                constraints: const BoxConstraints(minHeight: 56),
-                padding: const EdgeInsets.symmetric(horizontal: Espace.l, vertical: Espace.m),
-                decoration: BoxDecoration(
-                  border: i < lignes.length - 1 ? Border(bottom: BorderSide(color: p.bordure)) : null,
-                ),
-                child: Row(
-                  children: [
-                    Icon(icone, size: 22, color: p.action),
-                    const SizedBox(width: Espace.m),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(libelle, style: Typo.corpsFort.copyWith(color: p.action)),
-                          if (detail != null) Text(detail, style: Typo.secondaire.copyWith(color: p.texteSecondaire)),
-                        ],
-                      ),
+          if (d.tableau != null) ...[
+            bouton(
+              p.indigo,
+              LucideIcons.eye,
+              'Consulter : ${d.nomTableau}',
+              () => widget.onOuvrir('/rc/${d.id}/tableau'),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6, bottom: Espace.s + 2, left: 2),
+              child: Row(
+                children: [
+                  Icon(
+                    tableauOk ? LucideIcons.checkCircle : LucideIcons.clock,
+                    size: 14,
+                    color: tableauOk ? p.vert.vif : p.orange.vif,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      tableauOk ? 'Consulté' : 'Pas encore consulté',
+                      style: Typo.petit.copyWith(color: tableauOk ? p.vert.vif : p.orange.vif),
                     ),
-                    droite ?? Icon(Icons.chevron_right_rounded, color: p.texteTertiaire),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+          Row(
+            children: [
+              Expanded(
+                child: bouton(
+                  p.orange,
+                  LucideIcons.folder,
+                  'Fichiers (${d.nombreFichiers})',
+                  () => widget.onOuvrir('/rc/${d.id}/fichiers'),
                 ),
+              ),
+              const SizedBox(width: Espace.s),
+              Expanded(
+                child: Semantics(
+                  hint: d.estAvenant ? 'Modèle FIN 1-2' : 'Modèle FIN 1-1',
+                  child: bouton(
+                    p.bleu,
+                    LucideIcons.download,
+                    _libelleExport('document', d.estAvenant ? 'Avenant Excel' : 'RC Excel'),
+                    () => _telecharger('document'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (d.tableau != null) ...[
+            const SizedBox(height: Espace.s),
+            bouton(
+              p.bleu,
+              LucideIcons.fileSpreadsheet,
+              _libelleExport('tableau', '${d.nomTableau} en Excel'),
+              () => _telecharger('tableau'),
+            ),
+          ],
+          if (!libre)
+            Padding(
+              padding: const EdgeInsets.only(top: Espace.s),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(value: _progression, minHeight: 3),
               ),
             ),
         ],
@@ -804,10 +880,13 @@ class _Contact extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 48),
         child: Row(
           children: [
-            Icon(icone, size: 20, color: p.action),
+            Icon(icone, size: 18, color: p.action),
             const SizedBox(width: Espace.s + 2),
             Expanded(
-              child: Text(valeur, style: Typo.corps.copyWith(color: p.action)),
+              child: Text(
+                valeur,
+                style: Typo.corps.copyWith(color: p.action, fontWeight: FontWeight.w500),
+              ),
             ),
           ],
         ),
@@ -816,13 +895,22 @@ class _Contact extends StatelessWidget {
   }
 }
 
+/// Lien vers un autre document : référence en code (`font-mono font-bold text-[#0061A7]`).
 class _Lien extends StatelessWidget {
-  const _Lien({required this.libelle, required this.onTap, this.detail, this.couleurDetail, this.separe = false});
+  const _Lien({
+    required this.libelle,
+    required this.onTap,
+    this.detail,
+    this.couleurDetail,
+    this.separe = false,
+    this.avenant = false,
+  });
 
   final String libelle;
   final String? detail;
   final Color? couleurDetail;
   final bool separe;
+  final bool avenant;
   final VoidCallback onTap;
 
   @override
@@ -838,17 +926,19 @@ class _Lien extends StatelessWidget {
         ),
         child: Row(
           children: [
+            Icon(avenant ? LucideIcons.layers : LucideIcons.fileText, size: 18, color: avenant ? p.teal.vif : p.action),
+            const SizedBox(width: Espace.s + 2),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(libelle, style: Typo.corpsFort.copyWith(color: p.action)),
+                  Text(libelle, style: Typo.code.copyWith(color: p.action)),
                   if (detail != null)
                     Text(detail!, style: Typo.petit.copyWith(color: couleurDetail ?? p.texteSecondaire)),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: p.texteTertiaire),
+            Icon(LucideIcons.chevronRight, size: 18, color: p.texteDiscret),
           ],
         ),
       ),
@@ -883,6 +973,7 @@ class BarreDecision extends StatelessWidget {
             ? 'Paiement incohérent : approbation impossible, renvoyez le document.'
             : null);
     final leverBlocage = !g.tableauOk && g.documentOk && d.tableau != null ? onOuvrirTableau : null;
+    final secondaires = a.peutDemanderInfo || a.peutConvertirBc || a.peutAnnulerBc;
 
     return Material(
       type: MaterialType.transparency,
@@ -906,29 +997,33 @@ class BarreDecision extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Avertissement du web : `bg-amber-50 border-amber-200`, AlertTriangle `text-amber-600`.
                 AnimatedSize(
                   duration: const Duration(milliseconds: 220),
                   child: decide && rappel != null
                       ? Padding(
                           padding: const EdgeInsets.only(bottom: Espace.s),
                           child: Material(
-                            color: p.alerteFond,
-                            borderRadius: BorderRadius.circular(Rayon.s + 2),
+                            color: p.ambre.fondDoux,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(Rayon.m),
+                              side: BorderSide(color: p.ambre.bordDoux),
+                            ),
                             child: InkWell(
-                              borderRadius: BorderRadius.circular(Rayon.s + 2),
+                              borderRadius: BorderRadius.circular(Rayon.m),
                               onTap: leverBlocage,
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: Espace.m, vertical: Espace.s),
+                                padding: const EdgeInsets.symmetric(horizontal: Espace.m, vertical: Espace.s + 1),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.info_rounded, size: 18, color: p.alerte),
+                                    Icon(LucideIcons.alertTriangle, size: 17, color: p.ambre.vif),
                                     const SizedBox(width: Espace.s),
                                     Expanded(
-                                      child: Text(rappel, style: Typo.secondaire.copyWith(color: p.texte)),
+                                      child: Text(rappel, style: Typo.secondaire.copyWith(color: p.ambre.texte)),
                                     ),
                                     if (leverBlocage != null) ...[
                                       const SizedBox(width: Espace.s),
-                                      Text('Ouvrir', style: Typo.libelle.copyWith(fontSize: 14, color: p.action)),
+                                      Text('Ouvrir', style: Typo.libelle.copyWith(color: p.action)),
                                     ],
                                   ],
                                 ),
@@ -941,10 +1036,11 @@ class BarreDecision extends StatelessWidget {
                 if (a.peutRepondreInfo)
                   Padding(
                     padding: EdgeInsets.only(bottom: a.peutApprouver || a.peutRejeter ? Espace.s : 0),
-                    child: FilledButton.icon(
+                    child: BoutonPlein(
+                      couleur: p.ambre.vif,
+                      icone: LucideIcons.messageCircleQuestion,
+                      libelle: 'Répondre à la demande',
                       onPressed: () => onDecider(ModeDecision.reponse),
-                      icon: const Icon(Icons.forum_outlined),
-                      label: const Text('Répondre à la demande'),
                     ),
                   ),
                 if (a.peutApprouver || a.peutRejeter)
@@ -969,26 +1065,49 @@ class BarreDecision extends StatelessWidget {
                         ),
                     ],
                   ),
-                if (a.peutDemanderInfo || a.peutConvertirBc || a.peutAnnulerBc)
+                // Demande d'information (contour ambre) et bon de commande (`bg-[#0061A7]`).
+                if (secondaires)
                   Padding(
-                    padding: const EdgeInsets.only(top: Espace.xs),
-                    child: Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: Espace.l,
+                    padding: const EdgeInsets.only(top: Espace.s),
+                    child: Row(
                       children: [
                         if (a.peutDemanderInfo)
-                          TextButton.icon(
-                            onPressed: () => onDecider(ModeDecision.info),
-                            icon: const Icon(Icons.help_outline_rounded, size: 19),
-                            label: const Text('Demander une information'),
+                          Expanded(
+                            child: SizedBox(
+                              height: 44,
+                              child: BoutonContour(
+                                teinte: p.ambre,
+                                icone: LucideIcons.messageCircleQuestion,
+                                libelle: 'Demander une information',
+                                onPressed: () => onDecider(ModeDecision.info),
+                              ),
+                            ),
                           ),
-                        if (a.peutConvertirBc || a.peutAnnulerBc)
-                          TextButton.icon(
-                            onPressed: a.peutConvertirBc && approbationBloquee
-                                ? null
-                                : () => onDecider(a.peutConvertirBc ? ModeDecision.bc : ModeDecision.annulerBc),
-                            icon: const Icon(Icons.receipt_long_outlined, size: 19),
-                            label: Text(a.peutConvertirBc ? 'Bon de commande' : 'Annuler le bon de commande'),
+                        if (a.peutDemanderInfo && (a.peutConvertirBc || a.peutAnnulerBc))
+                          const SizedBox(width: Espace.s),
+                        if (a.peutConvertirBc)
+                          Expanded(
+                            child: SizedBox(
+                              height: 44,
+                              child: BoutonPlein(
+                                couleur: p.action,
+                                icone: LucideIcons.shoppingCart,
+                                libelle: 'Bon de commande',
+                                onPressed: approbationBloquee ? null : () => onDecider(ModeDecision.bc),
+                              ),
+                            ),
+                          )
+                        else if (a.peutAnnulerBc)
+                          Expanded(
+                            child: SizedBox(
+                              height: 44,
+                              child: BoutonContour(
+                                teinte: p.rouge,
+                                icone: LucideIcons.shoppingCart,
+                                libelle: 'Annuler le bon de commande',
+                                onPressed: () => onDecider(ModeDecision.annulerBc),
+                              ),
+                            ),
                           ),
                       ],
                     ),

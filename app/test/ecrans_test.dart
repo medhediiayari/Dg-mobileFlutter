@@ -73,8 +73,10 @@ void main() {
     await tester.tap(find.text('Se connecter'));
     await avancer(tester, 24);
 
-    expect(find.text('4 documents attendent votre décision'), findsOneWidget);
-    expect(find.text('dont 1 demande d’information'), findsOneWidget);
+    // Ni rôle ni nombre de documents en tête : le logo et les indicateurs seulement.
+    expect(find.textContaining('attendent votre décision'), findsNothing);
+    expect(find.text('Directeur Projet'), findsNothing);
+    expect(find.text("Consultez le RC avant d'approuver."), findsNothing);
     expect(find.text('En attente'), findsOneWidget);
     expect(find.text('Renvoyés'), findsOneWidget);
     expect(find.text('Gros œuvre — bâtiment A'), findsOneWidget);
@@ -168,7 +170,9 @@ void main() {
     await tester.tap(find.text('Profil').last);
     await avancer(tester, 20);
     expect(find.text('Camille Lefèvre'), findsOneWidget);
-    expect(find.text('Notifications non configurées'), findsOneWidget);
+    // Sans Firebase, pas de section Notifications (ni message « non configurées »).
+    expect(find.text('Notifications non configurées'), findsNothing);
+    expect(find.text('Activer / vérifier les notifications'), findsNothing);
     await tester.scrollUntilVisible(find.text('Google Pixel 8'), 200, scrollable: find.byType(Scrollable).last);
     expect(find.text('Ce téléphone'), findsOneWidget);
 
@@ -184,7 +188,6 @@ void main() {
     await tester.tap(find.text('À traiter').last);
     await avancer(tester, 24);
     // 148 à convertir en BC + la demande d'information adressée à l'utilisateur (quel que soit le rôle).
-    expect(find.text('2 documents attendent votre décision'), findsOneWidget);
     expect(find.text('Peinture, sols souples'), findsOneWidget);
   });
 
@@ -192,11 +195,13 @@ void main() {
     await lancer(tester);
     await tester.tap(find.text('Suivi').last);
     await avancer(tester, 20);
-    expect(find.text('10 documents'), findsOneWidget);
+    // RC ou avenants, jamais les deux mêlés : RC par défaut.
+    expect(find.text('RC et avenants'), findsNothing);
+    expect(find.text('9 documents'), findsOneWidget);
     await tester.tap(find.text('Avenants'));
     await avancer(tester, 20);
     expect(find.text('1 document'), findsOneWidget);
-    await tester.tap(find.text('RC et avenants'));
+    await tester.tap(find.text('RC').last);
     await avancer(tester, 10);
     await tester.enterText(find.byType(TextField).first, 'clinique');
     await avancer(tester, 20);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/auth/session.dart';
@@ -12,19 +13,8 @@ import '../../ui/theme.dart';
 import '../../ui/widgets/carte_rc.dart';
 import '../../ui/widgets/composants.dart';
 import '../../ui/widgets/marque.dart';
-import '../../ui/widgets/selecteur_role.dart';
 import '../../ui/widgets/squelette.dart';
 import '../rc/rc_providers.dart';
-
-/// Phrase d'accueil : où en suis-je ?
-String phraseAccueil(String? etape, int n) {
-  if (etape == 'RP') {
-    return n == 0 ? 'Aucun document à finaliser' : (n == 1 ? 'Un document à finaliser' : '$n documents à finaliser');
-  }
-  if (etape == null) return 'Suivi des RC et avenants';
-  if (n == 0) return "Rien n'attend votre décision";
-  return n == 1 ? 'Un document attend votre décision' : '$n documents attendent votre décision';
-}
 
 /// File « À traiter » du rôle actif.
 class AccueilScreen extends ConsumerStatefulWidget {
@@ -35,24 +25,6 @@ class AccueilScreen extends ConsumerStatefulWidget {
 }
 
 class _AccueilScreenState extends ConsumerState<AccueilScreen> {
-  final _defilement = ScrollController();
-  bool _compact = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _defilement.addListener(() {
-      final compact = _defilement.hasClients && _defilement.offset > 150;
-      if (compact != _compact) setState(() => _compact = compact);
-    });
-  }
-
-  @override
-  void dispose() {
-    _defilement.dispose();
-    super.dispose();
-  }
-
   Future<void> _rafraichir() async {
     try {
       ref.invalidate(listeProvider(FiltresListe.aTraiter));
@@ -69,8 +41,6 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
     final profil = ref.watch(profilProvider);
     final liste = ref.watch(listeProvider(FiltresListe.aTraiter));
     final premiere = liste.value?.premiere;
-    final etape = profil?.roleActif.etape;
-    final phrase = premiere == null ? 'Chargement…' : phraseAccueil(etape, premiere.total);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent),
@@ -84,37 +54,16 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
             onRefresh: _rafraichir,
             edgeOffset: MediaQuery.paddingOf(context).top + kToolbarHeight,
             child: CustomScrollView(
-              controller: _defilement,
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverAppBar(
                   pinned: true,
-                  backgroundColor: p.marine,
+                  backgroundColor: p.marineProfond,
                   automaticallyImplyLeading: false,
                   titleSpacing: Espace.l,
-                  title: Row(
-                    children: [
-                      if (profil != null)
-                        Flexible(
-                          child: Align(alignment: Alignment.centerLeft, child: _PiluleRole()),
-                        ),
-                      const SizedBox(width: Espace.s),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 180),
-                        child: _compact && premiere != null
-                            ? Text(
-                                '${premiere.total} à traiter',
-                                key: const ValueKey('compact'),
-                                style: Typo.sousTitre.copyWith(color: p.surMarine, fontSize: 18),
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    ],
-                  ),
+                  title: const Align(alignment: Alignment.centerLeft, child: LogoDgFlow(hauteur: 20, surFonce: true)),
                 ),
-                SliverToBoxAdapter(
-                  child: _EnTete(phrase: phrase, premiere: premiere),
-                ),
+                SliverToBoxAdapter(child: _EnTete(premiere: premiere)),
                 ..._contenu(context, liste, profil),
               ],
             ),
@@ -148,20 +97,10 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
           children: [
             if (premiere.enAttenteReception > 0)
               Bandeau(
-                ton: Ton.alerte,
-                icone: Icons.mark_email_unread_outlined,
+                teinte: p.ambre,
+                icone: LucideIcons.mailWarning,
                 titre: '${Format.pluriel(premiere.enAttenteReception, 'projet')} sans accusé de réception',
-                child: Text(
-                  'Confirmez la réception sur DG Flow web pour voir leurs RC ici.',
-                  style: Typo.secondaire.copyWith(color: p.texte),
-                ),
-              ),
-            if (profil?.lectureSeule == true && profil?.motifLectureSeule != null)
-              Bandeau(
-                ton: Ton.neutre,
-                icone: Icons.visibility_outlined,
-                titre: 'Consultation',
-                child: Text(profil!.motifLectureSeule!, style: Typo.secondaire.copyWith(color: p.texte)),
+                child: const Text('Confirmez la réception sur DG Flow web pour voir leurs RC ici.'),
               ),
           ],
         ),
@@ -169,13 +108,16 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
       if (elements.isEmpty)
         SliverFillRemaining(
           hasScrollBody: false,
-          child: EtatVide(
-            icone: Icons.task_alt_rounded,
-            titre: profil?.roleActif.etape == 'RP' ? 'Tout est à jour' : 'Vous êtes à jour',
-            texte: profil?.roleActif.etape == 'RP'
-                ? 'Aucun brouillon ni RC renvoyé pour correction.'
-                : 'Les documents qui arrivent à votre étape apparaîtront ici, avec une notification.',
-            action: OutlinedButton(onPressed: () => context.go('/suivi'), child: const Text('Voir le suivi')),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: EtatVide(
+              icone: LucideIcons.checkCircle,
+              titre: profil?.roleActif.etape == 'RP' ? 'Tout est à jour' : 'Vous êtes à jour',
+              texte: profil?.roleActif.etape == 'RP'
+                  ? 'Aucun brouillon ni RC renvoyé pour correction.'
+                  : 'Les documents qui arrivent à votre étape apparaîtront ici, avec une notification.',
+              action: OutlinedButton(onPressed: () => context.go('/suivi'), child: const Text('Voir le suivi')),
+            ),
           ),
         )
       else
@@ -194,118 +136,33 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
   }
 }
 
-class _PiluleRole extends ConsumerWidget {
+class _EnTete extends StatelessWidget {
+  const _EnTete({required this.premiere});
+
+  final ReponseListe? premiere;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final p = context.dg;
-    final profil = ref.watch(profilProvider)!;
-    final plusieurs = profil.plusieursRoles;
-    final r = profil.roleActif;
-    return Semantics(
-      button: plusieurs,
-      label: 'Rôle actif : ${r.libelle}${plusieurs ? '. Changer de rôle' : ''}',
-      excludeSemantics: true,
-      child: ZoneTactile(
-        onTap: plusieurs ? () => ouvrirSelecteurRole(context) : null,
-        child: Material(
-          color: Colors.white.withValues(alpha: 0.10),
-          shape: const StadiumBorder(),
-          child: InkWell(
-            customBorder: const StadiumBorder(),
-            onTap: plusieurs ? () => ouvrirSelecteurRole(context) : null,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 40),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(6, 4, 12, 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                      decoration: BoxDecoration(color: p.chevronProfond, borderRadius: BorderRadius.circular(999)),
-                      child: Text(r.monogramme, style: Typo.sigle.copyWith(color: Colors.white, fontSize: 13)),
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        r.libelle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Typo.libelle.copyWith(color: p.surMarineDoux, fontSize: 14),
-                      ),
-                    ),
-                    if (plusieurs) ...[
-                      const SizedBox(width: 2),
-                      Icon(Icons.expand_more_rounded, size: 18, color: p.surMarineDoux),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
+    // Bandeau d'indicateurs des tableaux de bord du web : `bg-[#162c4b] px-6 pt-5 pb-5`.
+    return ColoredBox(
+      color: p.marineProfond,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(Espace.l, Espace.xs, Espace.l, Espace.l + 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (AppConfig.demo) ...[const BandeauDemo(), const SizedBox(height: Espace.m)],
+            _Compteurs(r: premiere),
+          ],
         ),
       ),
     );
   }
 }
 
-class _EnTete extends ConsumerWidget {
-  const _EnTete({required this.phrase, required this.premiere});
-
-  final String phrase;
-  final ReponseListe? premiere;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final p = context.dg;
-    final r = premiere;
-    final info = r?.compteurs.infoPourMoi ?? 0;
-    return Container(
-      decoration: BoxDecoration(
-        color: p.marine,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(Rayon.xl + 6)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          const Positioned.fill(child: ChevronsFiligrane()),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(Espace.l, Espace.xs, Espace.l, Espace.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (AppConfig.demo) ...[const BandeauDemo(), const SizedBox(height: Espace.m)],
-                Semantics(
-                  header: true,
-                  liveRegion: true,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    child: Text(
-                      phrase,
-                      key: ValueKey(phrase),
-                      style: Typo.affiche.copyWith(color: p.surMarine),
-                    ),
-                  ),
-                ),
-                if (info > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      'dont ${Format.pluriel(info, "demande")} d’information',
-                      style: Typo.corps.copyWith(color: p.surMarineDoux, fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                const SizedBox(height: Espace.l + 2),
-                _Compteurs(r: r),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
+/// Tuiles d'indicateurs : `rounded-xl border border-white/20 bg-white/10 px-4 py-3`,
+/// valeur `text-2xl font-bold text-white`, libellé `text-sm font-semibold text-white/90`.
 class _Compteurs extends StatelessWidget {
   const _Compteurs({required this.r});
 
@@ -313,7 +170,6 @@ class _Compteurs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.dg;
     const raccourcis = [(Bucket.pending, 'En attente'), (Bucket.rejected, 'Renvoyés'), (Bucket.approved, 'Validés')];
     return Row(
       children: [
@@ -325,13 +181,16 @@ class _Compteurs extends StatelessWidget {
               label: '$libelle : ${r?.compteurs[bucket] ?? '…'}. Ouvrir le suivi',
               excludeSemantics: true,
               child: Material(
-                color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(Rayon.m + 2),
+                color: Colors.white.withValues(alpha: 0.10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(Rayon.l),
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.20)),
+                ),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(Rayon.m + 2),
+                  borderRadius: BorderRadius.circular(Rayon.l),
                   onTap: () => context.go('/suivi?bucket=${bucket.name}'),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(Espace.m, Espace.s + 2, Espace.s, Espace.s + 2),
+                    padding: const EdgeInsets.fromLTRB(Espace.m, Espace.m, Espace.s, Espace.m),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -342,7 +201,7 @@ class _Compteurs extends StatelessWidget {
                             key: ValueKey('${bucket.name}-${r?.compteurs[bucket]}'),
                             style: Typo.compteur.copyWith(
                               color: bucket == Bucket.rejected && (r?.compteurs[bucket] ?? 0) > 0
-                                  ? const Color(0xFFF6C28B)
+                                  ? Tw.orange300
                                   : Colors.white,
                             ),
                           ),
@@ -352,7 +211,7 @@ class _Compteurs extends StatelessWidget {
                           libelle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Typo.petit.copyWith(color: p.surMarineDoux, fontSize: 13),
+                          style: Typo.libelle.copyWith(color: Colors.white.withValues(alpha: 0.90)),
                         ),
                       ],
                     ),

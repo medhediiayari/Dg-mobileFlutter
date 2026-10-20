@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/models/models.dart';
@@ -28,7 +29,8 @@ class SuiviScreen extends ConsumerStatefulWidget {
 
 class _SuiviScreenState extends ConsumerState<SuiviScreen> {
   late Bucket? _bucket = widget.bucketInitial;
-  TypeDocument? _type;
+  // RC ou avenants, l'un ou l'autre (pas de vue mêlée).
+  TypeDocument _type = TypeDocument.rc;
   String _q = '';
   final _saisie = TextEditingController();
   Timer? _differe;
@@ -67,8 +69,10 @@ class _SuiviScreenState extends ConsumerState<SuiviScreen> {
     final premiere = liste.value?.premiere;
 
     return Scaffold(
+      // En-tête des pages RC du web : `bg-gradient-to-r from-[#172D4C] to-[#1e3d6b]`.
       appBar: AppBar(
         title: const Text('Suivi des documents'),
+        flexibleSpace: const DegradeEnTete(),
         automaticallyImplyLeading: false,
         titleSpacing: Espace.l,
       ),
@@ -79,7 +83,7 @@ class _SuiviScreenState extends ConsumerState<SuiviScreen> {
               color: p.surface,
               border: Border(bottom: BorderSide(color: p.bordure)),
             ),
-            padding: const EdgeInsets.only(top: Espace.m, bottom: Espace.xs),
+            padding: const EdgeInsets.only(top: Espace.m, bottom: Espace.m),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -92,29 +96,24 @@ class _SuiviScreenState extends ConsumerState<SuiviScreen> {
                     autocorrect: false,
                     decoration: InputDecoration(
                       hintText: 'Chantier, lot, entreprise ou référence',
-                      fillColor: p.fond,
-                      prefixIcon: Icon(Icons.search_rounded, color: p.texteTertiaire),
+                      prefixIcon: Icon(LucideIcons.search, size: 18, color: p.texteTertiaire),
                       suffixIcon: _saisie.text.isEmpty
                           ? null
                           : IconButton(
                               tooltip: 'Effacer la recherche',
-                              icon: Icon(Icons.cancel_rounded, color: p.texteTertiaire),
+                              icon: Icon(LucideIcons.x, size: 18, color: p.texteTertiaire),
                               onPressed: () {
                                 _saisie.clear();
                                 _surSaisie('');
                               },
                             ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(Rayon.m),
-                        borderSide: BorderSide(color: p.fond),
-                      ),
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(Espace.l, Espace.xs, Espace.l, 0),
+                  padding: const EdgeInsets.fromLTRB(Espace.l, Espace.xs, Espace.l, Espace.xs),
                   child: Row(
                     children: [
                       Puce(libelle: 'Tous', actif: _bucket == null, onTap: () => setState(() => _bucket = null)),
@@ -129,23 +128,12 @@ class _SuiviScreenState extends ConsumerState<SuiviScreen> {
                     ],
                   ),
                 ),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(Espace.l, 0, Espace.l, Espace.xs),
-                  child: Row(
-                    children: [
-                      Puce(libelle: 'RC et avenants', actif: _type == null, onTap: () => setState(() => _type = null)),
-                      Puce(
-                        libelle: 'RC',
-                        actif: _type == TypeDocument.rc,
-                        onTap: () => setState(() => _type = TypeDocument.rc),
-                      ),
-                      Puce(
-                        libelle: 'Avenants',
-                        actif: _type == TypeDocument.avenant,
-                        onTap: () => setState(() => _type = TypeDocument.avenant),
-                      ),
-                    ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: Espace.l),
+                  child: Segment<TypeDocument>(
+                    options: const [(TypeDocument.rc, 'RC'), (TypeDocument.avenant, 'Avenants')],
+                    valeur: _type,
+                    onChange: (t) => setState(() => _type = t),
                   ),
                 ),
               ],
@@ -192,7 +180,7 @@ class _Liste extends ConsumerWidget {
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: const [
                   EtatVide(
-                    icone: Icons.search_off_rounded,
+                    icone: LucideIcons.searchX,
                     titre: 'Aucun document',
                     texte: 'Modifiez la recherche ou les filtres.',
                   ),
@@ -211,7 +199,7 @@ class _Liste extends ConsumerWidget {
                         children: [
                           Text(
                             Format.pluriel(s.premiere.total, 'document'),
-                            style: Typo.secondaire.copyWith(color: p.texteSecondaire),
+                            style: Typo.libelle.copyWith(color: p.texteSecondaire),
                           ),
                           if (liste.isRefreshing) ...[const SizedBox(width: Espace.s), const Roue(taille: 12)],
                         ],
@@ -224,7 +212,7 @@ class _Liste extends ConsumerWidget {
                       return Center(
                         child: TextButton.icon(
                           onPressed: () => ref.read(listeProvider(filtres).notifier).chargerSuite(force: true),
-                          icon: const Icon(Icons.refresh_rounded),
+                          icon: const Icon(LucideIcons.refreshCw, size: 18),
                           label: const Text('Charger la suite'),
                         ),
                       );

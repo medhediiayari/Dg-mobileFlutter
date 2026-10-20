@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/models/commun.dart';
 import '../../../core/utils/format.dart';
@@ -124,47 +125,63 @@ class ChoixPieces extends StatelessWidget {
     final p = context.dg;
     final restant = maxPieces - pieces.length;
     final boutons = [
-      if (!kIsWeb) (Icons.photo_camera_outlined, 'Photo', _photo),
-      (Icons.photo_library_outlined, 'Galerie', _galerie),
-      (Icons.description_outlined, 'Document', _document),
+      if (!kIsWeb) (LucideIcons.camera, 'Photo', _photo),
+      (LucideIcons.images, 'Galerie', _galerie),
+      (LucideIcons.paperclip, 'Document', _document),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text('Pièces jointes', style: Typo.libelle.copyWith(color: p.texte)),
-        Text(
-          'Facultatif. Photo, image ou document, 25 Mo maximum chacun (${pieces.length}/$maxPieces).',
-          style: Typo.secondaire.copyWith(color: p.texteSecondaire),
-        ),
-        const SizedBox(height: Espace.s),
-        Row(
-          children: [
-            for (final (i, (icone, libelle, action)) in boutons.indexed) ...[
-              if (i > 0) const SizedBox(width: Espace.s),
-              Expanded(
-                child: _BoutonPiece(
-                  icone: icone,
-                  libelle: libelle,
-                  onTap: desactive || restant <= 0 ? null : () => action(context),
+        const SizedBox(height: Espace.xs + 2),
+        // Zone d'ajout du web : `border-dashed border-2 border-gray-300 rounded-lg p-3`,
+        // consigne `text-center text-xs text-gray-500`, boutons contour.
+        CustomPaint(
+          painter: _Pointilles(couleur: p.bordureForte),
+          child: Padding(
+            padding: const EdgeInsets.all(Espace.m),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Facultatif. Photo, image ou document, 25 Mo maximum chacun (${pieces.length}/$maxPieces).',
+                  textAlign: TextAlign.center,
+                  style: Typo.petit.copyWith(color: p.texteTertiaire, fontWeight: FontWeight.w400),
                 ),
-              ),
-            ],
-          ],
+                const SizedBox(height: Espace.s),
+                Row(
+                  children: [
+                    for (final (i, (icone, libelle, action)) in boutons.indexed) ...[
+                      if (i > 0) const SizedBox(width: Espace.s),
+                      Expanded(
+                        child: _BoutonPiece(
+                          icone: icone,
+                          libelle: libelle,
+                          onTap: desactive || restant <= 0 ? null : () => action(context),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
+        // Fichier joint : `p-2 bg-gray-50 border border-gray-200 rounded-lg`, icône `text-gray-500`.
         for (final (i, piece) in pieces.indexed)
           Padding(
             padding: const EdgeInsets.only(top: Espace.s),
             child: Container(
               padding: const EdgeInsets.only(left: Espace.m),
               decoration: BoxDecoration(
-                color: p.surface,
-                borderRadius: BorderRadius.circular(Rayon.s + 2),
+                color: p.gris.fondDoux,
+                borderRadius: BorderRadius.circular(Rayon.m),
                 border: Border.all(color: p.bordure),
               ),
               child: Row(
                 children: [
-                  Icon(iconeFichier(piece.type), size: 20, color: p.texteSecondaire),
-                  const SizedBox(width: Espace.m),
+                  Icon(iconeFichier(piece.type), size: 18, color: p.texteTertiaire),
+                  const SizedBox(width: Espace.s + 2),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,17 +190,17 @@ class ChoixPieces extends StatelessWidget {
                           piece.nom,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Typo.corps.copyWith(color: p.texte),
+                          style: Typo.secondaire.copyWith(color: p.texte, fontWeight: FontWeight.w500),
                         ),
                         if (piece.taille != null)
-                          Text(Format.taille(piece.taille!), style: Typo.petit.copyWith(color: p.texteSecondaire)),
+                          Text(Format.taille(piece.taille!), style: Typo.petit.copyWith(color: p.texteDiscret)),
                       ],
                     ),
                   ),
                   IconButton(
                     tooltip: 'Retirer ${piece.nom}',
                     onPressed: desactive ? null : () => onChange([...pieces]..removeAt(i)),
-                    icon: Icon(Icons.cancel_rounded, color: p.texteTertiaire),
+                    icon: Icon(LucideIcons.x, size: 18, color: p.texteDiscret),
                   ),
                 ],
               ),
@@ -194,6 +211,8 @@ class ChoixPieces extends StatelessWidget {
   }
 }
 
+/// Bouton contour du web (`variant="outline" size="sm"`, texte `text-gray-600`),
+/// icône au-dessus du libellé pour tenir à trois sur la largeur du téléphone.
 class _BoutonPiece extends StatelessWidget {
   const _BoutonPiece({required this.icone, required this.libelle, required this.onTap});
 
@@ -205,28 +224,28 @@ class _BoutonPiece extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.dg;
     return Opacity(
-      opacity: onTap == null ? 0.45 : 1,
+      opacity: onTap == null ? 0.5 : 1,
       child: Semantics(
         button: true,
         label: 'Joindre : $libelle',
         excludeSemantics: true,
         child: Material(
-          color: p.accentClair,
-          borderRadius: BorderRadius.circular(Rayon.m),
+          color: p.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Rayon.s),
+            side: BorderSide(color: p.bordure, width: 2),
+          ),
           child: InkWell(
-            borderRadius: BorderRadius.circular(Rayon.m),
+            borderRadius: BorderRadius.circular(Rayon.s),
             onTap: onTap,
-            child: CustomPaint(
-              painter: _Pointilles(couleur: p.action.withValues(alpha: 0.6)),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: Espace.m),
-                child: Column(
-                  children: [
-                    Icon(icone, color: p.action),
-                    const SizedBox(height: 4),
-                    Text(libelle, style: Typo.libelle.copyWith(fontSize: 14, color: p.action)),
-                  ],
-                ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: Espace.s + 2),
+              child: Column(
+                children: [
+                  Icon(icone, size: 18, color: p.texteSecondaire),
+                  const SizedBox(height: 4),
+                  Text(libelle, style: Typo.libelle.copyWith(fontSize: 13, color: p.texteSecondaire)),
+                ],
               ),
             ),
           ),
@@ -236,7 +255,7 @@ class _BoutonPiece extends StatelessWidget {
   }
 }
 
-/// Bordure pointillée (zone d'ajout).
+/// Bordure pointillée (zone d'ajout, `border-2 border-dashed`).
 class _Pointilles extends CustomPainter {
   const _Pointilles({required this.couleur});
 
@@ -244,17 +263,17 @@ class _Pointilles extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(Rayon.m)).deflate(0.5);
+    final rect = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(Rayon.m)).deflate(1);
     final chemin = Path()..addRRect(rect);
     final peinture = Paint()
       ..color = couleur
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
+      ..strokeWidth = 2;
     for (final m in chemin.computeMetrics()) {
       var d = 0.0;
       while (d < m.length) {
-        canvas.drawPath(m.extractPath(d, d + 5), peinture);
-        d += 9;
+        canvas.drawPath(m.extractPath(d, d + 6), peinture);
+        d += 10;
       }
     }
   }

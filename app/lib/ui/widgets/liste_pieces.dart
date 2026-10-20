@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/models/commun.dart';
 import '../../core/utils/format.dart';
 import '../telechargement.dart';
 import '../theme.dart';
 
+/// Icône Lucide d'un fichier, comme sur le web (FileText, Image, FileSpreadsheet, File).
 IconData iconeFichier(String type) {
-  if (type.contains('pdf')) return Icons.picture_as_pdf_outlined;
-  if (type.startsWith('image/')) return Icons.image_outlined;
-  if (type.contains('sheet') || type.contains('excel')) return Icons.grid_on_rounded;
-  return Icons.attach_file_rounded;
+  if (type.contains('pdf')) return LucideIcons.fileText;
+  if (type.startsWith('image/')) return LucideIcons.image;
+  if (type.contains('sheet') || type.contains('excel') || type.contains('csv')) return LucideIcons.fileSpreadsheet;
+  return LucideIcons.file;
 }
 
-/// Pièces jointes du circuit : téléchargées via l'API, ouvertes avec le lecteur du téléphone.
+/// Pièces jointes du circuit : téléchargées via l'API, ouvertes avec le lecteur du
+/// téléphone. Ligne du web : `p-2 bg-white border rounded-lg`, FileText / Eye.
 class ListePieces extends ConsumerStatefulWidget {
   const ListePieces({required this.rcId, required this.pieces, super.key});
 
@@ -60,7 +63,7 @@ class _ListePiecesState extends ConsumerState<ListePieces> {
               child: Material(
                 color: p.surface,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Rayon.s + 2),
+                  borderRadius: BorderRadius.circular(Rayon.m),
                   side: BorderSide(color: p.bordure),
                 ),
                 clipBehavior: Clip.antiAlias,
@@ -76,14 +79,14 @@ class _ListePiecesState extends ConsumerState<ListePieces> {
                         padding: const EdgeInsets.symmetric(horizontal: Espace.m, vertical: 10),
                         child: Row(
                           children: [
-                            Icon(iconeFichier(piece.type), size: 19, color: p.action),
+                            Icon(iconeFichier(piece.type), size: 18, color: p.action),
                             const SizedBox(width: Espace.s),
                             Expanded(
                               child: Text(
                                 piece.nom,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: Typo.corps.copyWith(fontSize: 15, color: p.action, fontWeight: FontWeight.w500),
+                                style: Typo.secondaire.copyWith(color: p.texte, fontWeight: FontWeight.w500),
                               ),
                             ),
                             const SizedBox(width: Espace.s),
@@ -92,8 +95,11 @@ class _ListePiecesState extends ConsumerState<ListePieces> {
                                 dimension: 18,
                                 child: CircularProgressIndicator(strokeWidth: 2.2, value: _progression),
                               )
-                            else
+                            else ...[
                               Text(Format.taille(piece.taille), style: Typo.petit.copyWith(color: p.texteTertiaire)),
+                              const SizedBox(width: Espace.s),
+                              Icon(LucideIcons.eye, size: 16, color: p.action),
+                            ],
                           ],
                         ),
                       ),

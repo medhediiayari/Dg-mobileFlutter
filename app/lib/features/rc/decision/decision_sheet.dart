@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../../core/models/models.dart';
@@ -78,6 +79,24 @@ class _FeuilleDecisionState extends ConsumerState<FeuilleDecision> {
       const {ModeDecision.approuver, ModeDecision.rejeter, ModeDecision.info, ModeDecision.reponse}.contains(mode);
   bool get _signatureRequise => mode == ModeDecision.approuver || mode == ModeDecision.bc;
   bool get _bloqueSignature => _signatureRequise && d.actions.signatureManquante;
+
+  /// Renvoi décidé par le Service Gestion (dernière étape du circuit) : orange
+  /// sur le web (`RejectRcDialogSG`), rouge pour le Directeur d'études.
+  bool get _renvoiSg => mode == ModeDecision.rejeter && positionParcours(d.statut).index == 4;
+
+  /// Famille et icône de l'en-tête, comme les dialogues du web.
+  (Teinte, IconData) _entete(Palette p) => switch (mode) {
+    ModeDecision.approuver => (p.vert, LucideIcons.checkCircle),
+    ModeDecision.rejeter when _renvoiSg => (p.orange, LucideIcons.alertTriangle),
+    ModeDecision.rejeter when d.actions.rejetAvecDestinataire => (p.rouge, LucideIcons.alertTriangle),
+    ModeDecision.rejeter => (p.rouge, LucideIcons.xCircle),
+    ModeDecision.info || ModeDecision.reponse => (p.ambre, LucideIcons.messageCircleQuestion),
+    ModeDecision.bc => (_teinteAction(p), LucideIcons.shoppingCart),
+    ModeDecision.annulerBc => (p.rouge, LucideIcons.xCircle),
+  };
+
+  /// Couleur d'un bouton plein : nuance 600 (500 en mode sombre, texte blanc lisible).
+  Color _plein(Teinte t) => context.sombre ? t.plein : t.vif;
 
   String get _titre => switch (mode) {
     ModeDecision.approuver => 'Approuver et signer',
@@ -293,8 +312,8 @@ class _FeuilleDecisionState extends ConsumerState<FeuilleDecision> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(_titre, style: Typo.titre.copyWith(color: p.texte)),
-                          const SizedBox(height: Espace.m),
+                          _EnTete(teinte: _entete(p).$1, icone: _entete(p).$2, titre: _titre),
+                          const SizedBox(height: Espace.l),
                           _Recapitulatif(d: d),
                           const SizedBox(height: Espace.m),
                           ..._bandeaux(context),
@@ -318,12 +337,15 @@ class _FeuilleDecisionState extends ConsumerState<FeuilleDecision> {
                                 if (_champEnErreur) setState(() => _champEnErreur = false);
                               },
                               decoration: InputDecoration(
-                                enabledBorder: _champEnErreur
-                                    ? OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(Rayon.m),
-                                        borderSide: BorderSide(color: p.danger, width: 1.5),
-                                      )
-                                    : null,
+                                // `border-2 border-gray-300`, focus vert (approbation), ambre
+                                // (information) ou rouge (rejet), comme les dialogues du web.
+                                enabledBorder: _bordChamp(_champEnErreur ? p.rouge.plein : p.bordureForte),
+                                focusedBorder: _bordChamp(switch (mode) {
+                                  _ when _champEnErreur => p.rouge.plein,
+                                  ModeDecision.approuver => p.vert.plein,
+                                  ModeDecision.rejeter => (_renvoiSg ? p.orange : p.rouge).plein,
+                                  _ => p.ambre.plein,
+                                }),
                                 hintText: switch (mode) {
                                   ModeDecision.rejeter => 'Expliquez ce qui doit être corrigé…',
                                   ModeDecision.approuver => 'Facultatif : un mot pour le prochain validateur…',
@@ -346,14 +368,14 @@ class _FeuilleDecisionState extends ConsumerState<FeuilleDecision> {
                           if (_erreurApi != null) _encartApi(_erreurApi!),
                           if (_etape == _Etape.pieces) ...[
                             ClipRRect(
-                              borderRadius: BorderRadius.circular(3),
+                              borderRadius: BorderRadius.circular(999),
                               child: LinearProgressIndicator(value: _progression, minHeight: 6),
                             ),
                             const SizedBox(height: Espace.s),
                           ],
                           _boutonPrincipal(enCours),
-                          const SizedBox(height: Espace.xs),
-                          TextButton(
+                          const SizedBox(height: Espace.s),
+                          OutlinedButton(
                             onPressed: enCours ? null : () => Navigator.of(context).pop(),
                             child: const Text('Annuler'),
                           ),
@@ -373,80 +395,106 @@ class _FeuilleDecisionState extends ConsumerState<FeuilleDecision> {
         : _titre;
     final onPressed = _bloqueSignature || enCours ? null : _valider;
     final chargement = _etape == _Etape.decision;
+    final p = context.dg;
     return switch (mode) {
-      ModeDecision.approuver ||
-      ModeDecision.bc => BoutonApprobation(libelle: libelle, onPressed: onPressed, chargement: chargement),
-      ModeDecision.rejeter => FilledButton.icon(
+      ModeDecision.approuver => BoutonApprobation(libelle: libelle, onPressed: onPressed, chargement: chargement),
+      ModeDecision.bc => BoutonPlein(
+        couleur: p.action,
+        libelle: libelle,
         onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: context.dg.danger,
-          foregroundColor: context.sombre ? const Color(0xFF3A0E0A) : Colors.white,
-        ),
-        icon: chargement
-            ? Roue(couleur: context.sombre ? const Color(0xFF3A0E0A) : Colors.white)
-            : const Icon(Icons.undo_rounded),
-        label: Text(libelle),
+        icone: LucideIcons.shoppingCart,
+        chargement: chargement,
       ),
-      _ => FilledButton.icon(
+      ModeDecision.rejeter => BoutonPlein(
+        couleur: _plein(_renvoiSg ? p.orange : p.rouge),
+        libelle: libelle,
         onPressed: onPressed,
-        icon: chargement
-            ? Roue(couleur: context.dg.surAction)
-            : Icon(mode == ModeDecision.annulerBc ? Icons.cancel_outlined : Icons.send_rounded),
-        label: Text(libelle),
+        icone: LucideIcons.xCircle,
+        chargement: chargement,
+      ),
+      ModeDecision.info || ModeDecision.reponse => BoutonPlein(
+        couleur: _plein(p.ambre),
+        libelle: libelle,
+        onPressed: onPressed,
+        icone: LucideIcons.send,
+        chargement: chargement,
+      ),
+      ModeDecision.annulerBc => BoutonPlein(
+        couleur: _plein(p.rouge),
+        libelle: libelle,
+        onPressed: onPressed,
+        icone: LucideIcons.xCircle,
+        chargement: chargement,
       ),
     };
   }
 
+  OutlineInputBorder _bordChamp(Color c) => OutlineInputBorder(
+    borderRadius: BorderRadius.circular(Rayon.s),
+    borderSide: BorderSide(color: c, width: 2),
+  );
+
   List<Widget> _bandeaux(BuildContext context) {
     final p = context.dg;
-    final texte = Typo.secondaire.copyWith(color: p.texte);
     return [
       if (_bloqueSignature)
         Bandeau(
-          ton: Ton.danger,
-          icone: Icons.draw_outlined,
+          teinte: p.rouge,
+          icone: LucideIcons.signature,
           titre: 'Signature manquante',
-          child: Text(
+          child: const Text(
             'Ajoutez votre signature dans votre profil DG Flow (web) avant de pouvoir approuver. '
             'Elle est apposée sur le document à chaque approbation.',
-            style: texte,
           ),
         )
       else if (mode == ModeDecision.approuver)
+        // Encart « Approbation » du web : `bg-[#0061A7]/5 border-[#0061A7]/20`.
         Bandeau(
-          ton: Ton.info,
-          icone: Icons.draw_outlined,
+          teinte: _teinteAction(p),
+          icone: LucideIcons.signature,
           titre: 'Votre signature sera apposée',
-          child: Text(
+          child: const Text(
             "La signature de votre profil DG Flow est ajoutée au document, et l'étape suivante est notifiée "
             '(application, web et email).',
-            style: texte,
           ),
         )
       else if (mode == ModeDecision.bc)
         Bandeau(
-          ton: Ton.alerte,
-          icone: Icons.receipt_long_outlined,
+          teinte: _teinteAction(p),
+          icone: LucideIcons.shoppingCart,
           titre: 'Conversion en Bon de Commande',
-          child: Text(
+          child: const Text(
             'Le RC est marqué « Bon de Commande » ET approuvé par Service Gestion : votre signature est apposée '
             'et le circuit de validation se termine.',
-            style: texte,
           ),
         )
       else if (mode == ModeDecision.annulerBc)
         Bandeau(
-          ton: Ton.neutre,
-          icone: Icons.receipt_long_outlined,
+          teinte: p.gris,
+          icone: LucideIcons.shoppingCart,
           titre: 'Annuler la conversion',
-          child: Text("Le RC n'est plus un Bon de Commande et reste en attente de votre décision.", style: texte),
+          child: const Text("Le RC n'est plus un Bon de Commande et reste en attente de votre décision."),
         ),
+      // Avertissement des dialogues de rejet du web (`bg-amber-50 border-amber-200`, AlertTriangle).
+      if (mode == ModeDecision.rejeter)
+        Bandeau(
+          teinte: p.ambre,
+          icone: LucideIcons.alertTriangle,
+          titre: 'Attention',
+          child: Text(
+            d.actions.rejetAvecDestinataire
+                ? 'Le renvoi sera notifié au destinataire choisi. Indiquez clairement ce qui doit être corrigé.'
+                : "Le rejet sera notifié à l'étape précédente. Indiquez clairement la raison du rejet.",
+          ),
+        ),
+      // Demande d'information reçue : `bg-amber-50 border-2 border-amber-300`.
       if (mode == ModeDecision.reponse && d.demandeInfo != null)
         Bandeau(
-          ton: Ton.info,
-          icone: Icons.forum_outlined,
+          teinte: p.ambre,
+          fort: true,
+          icone: LucideIcons.messageCircleQuestion,
           titre: 'Question de ${d.demandeInfo!.par ?? '—'}',
-          child: Text(d.demandeInfo!.message ?? '', style: Typo.corps.copyWith(color: p.texte)),
+          child: Text(d.demandeInfo!.message ?? '', style: Typo.corps.copyWith(color: p.ambre.texte)),
         ),
     ];
   }
@@ -491,10 +539,22 @@ class _FeuilleDecisionState extends ConsumerState<FeuilleDecision> {
                             child: RadioListTile<int>(
                               value: x.id,
                               enabled: !enCours,
-                              title: Text(x.nom, style: Typo.corps.copyWith(color: p.texte)),
-                              subtitle: Text(
-                                '${x.role}${x.id == propose ? ', dernier à avoir approuvé' : ''}',
-                                style: Typo.secondaire.copyWith(color: p.texteSecondaire),
+                              title: Text(x.nom, style: Typo.corps.copyWith(color: p.texte, fontWeight: FontWeight.w500)),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Wrap(
+                                  spacing: Espace.s,
+                                  runSpacing: 2,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    Pastille(libelle: x.role, teinte: _teinteRole(p, x.role), pilule: true, petite: true),
+                                    if (x.id == propose)
+                                      Text(
+                                        'dernier à avoir approuvé',
+                                        style: Typo.petit.copyWith(color: p.texteTertiaire),
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -508,6 +568,68 @@ class _FeuilleDecisionState extends ConsumerState<FeuilleDecision> {
   }
 }
 
+/// En-tête des dialogues de décision du web : cercle `w-12 h-12 rounded-full
+/// bg-*-100` + icône `text-*-600`, titre `text-[#172D4C]`.
+class _EnTete extends StatelessWidget {
+  const _EnTete({required this.teinte, required this.icone, required this.titre});
+
+  final Teinte teinte;
+  final IconData icone;
+  final String titre;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      CercleIcone(teinte: teinte, icone: icone),
+      const SizedBox(width: Espace.m),
+      Expanded(
+        child: Semantics(
+          header: true,
+          child: Text(titre, style: Typo.sousTitre.copyWith(fontSize: 20, color: context.dg.titre)),
+        ),
+      ),
+    ],
+  );
+}
+
+/// Bleu DG `#0061A7` en encart : `bg-[#0061A7]/5 border-[#0061A7]/20`, icône
+/// `text-[#0061A7]` (encart d'approbation, bon de commande).
+Teinte _teinteAction(Palette p) => Teinte(
+  fondDoux: Color.alphaBlend(p.action.withValues(alpha: 0.05), p.surface),
+  fond: p.accentClair,
+  bordDoux: Color.alphaBlend(p.action.withValues(alpha: 0.2), p.surface),
+  bord: p.bleu.bord,
+  plein: p.action,
+  vif: p.action,
+  fonce: p.actionFonce,
+  texte: p.titre,
+);
+
+/// Puces de rôle des listes de destinataires du web (`RejectRcDialogRE/SG`) :
+/// Exploitation ambre, Études émeraude, Directeur projet indigo, Responsable bleu
+/// (`bg-*-100 text-*-800 border-*-200`).
+Teinte _teinteRole(Palette p, String role) {
+  final t = role.contains('Exploitation')
+      ? p.ambre
+      : role.contains('Etude') || role.contains('Étude') || role.contains('étude')
+      ? p.emeraude
+      : role.contains('Directeur')
+      ? p.indigo
+      : role.contains('Responsable')
+      ? p.bleu
+      : p.gris;
+  return Teinte(
+    fondDoux: t.fondDoux,
+    fond: t.fond,
+    bordDoux: t.bordDoux,
+    bord: t.bordDoux,
+    plein: t.plein,
+    vif: t.vif,
+    fonce: t.fonce,
+    texte: t.texte,
+  );
+}
+
 class _Recapitulatif extends StatelessWidget {
   const _Recapitulatif({required this.d});
 
@@ -517,6 +639,8 @@ class _Recapitulatif extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.dg;
     return Carte(
+      padding: const EdgeInsets.all(Espace.m + 2),
+      bordGauche: d.estAvenant ? p.teal.plein : p.action,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -524,12 +648,22 @@ class _Recapitulatif extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${d.estAvenant ? '${d.libelleType}, ' : ''}${d.reference}',
-                  style: Typo.secondaire.copyWith(color: p.texteSecondaire),
+                Row(
+                  children: [
+                    TagType(avenant: d.estAvenant, numero: d.numeroAvenant),
+                    const SizedBox(width: Espace.s),
+                    Flexible(
+                      child: Text(
+                        d.reference,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Typo.code.copyWith(color: p.action),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Text(d.intitule, style: Typo.sousTitre.copyWith(color: p.texte)),
+                const SizedBox(height: Espace.xs + 2),
+                Text(d.intitule, style: Typo.sousTitre.copyWith(fontSize: 16, color: p.titre)),
                 Text(
                   [d.projet.code, d.projet.nom].whereType<String>().join('  '),
                   style: Typo.secondaire.copyWith(color: p.texteSecondaire),
@@ -541,7 +675,7 @@ class _Recapitulatif extends StatelessWidget {
             const SizedBox(width: Espace.m),
             Text(
               Format.euros(d.montants.montantRetenu, arrondi: true),
-              style: Typo.montant.copyWith(fontSize: 19, color: p.texte),
+              style: Typo.montant.copyWith(fontWeight: FontWeight.w700, color: p.titre),
             ),
           ],
         ],
@@ -570,7 +704,7 @@ class _Confirmation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.dg;
-    final couleur = avertissement ? p.alerte : p.succes;
+    final t = avertissement ? p.ambre : p.vert;
     return Padding(
       padding: const EdgeInsets.fromLTRB(Espace.xl, Espace.s, Espace.xl, Espace.xl),
       child: Column(
@@ -581,17 +715,17 @@ class _Confirmation extends StatelessWidget {
             duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 420),
             curve: Curves.elasticOut,
             builder: (context, v, enfant) => Transform.scale(scale: v, child: enfant),
-            child: Container(
-              width: 76,
-              height: 76,
-              decoration: BoxDecoration(color: avertissement ? p.alerteFond : p.succesFond, shape: BoxShape.circle),
-              child: Icon(avertissement ? Icons.priority_high_rounded : Icons.check_rounded, size: 42, color: couleur),
+            child: CercleIcone(
+              teinte: t,
+              icone: avertissement ? LucideIcons.alertTriangle : LucideIcons.checkCircle,
+              taille: 72,
+              tailleIcone: 36,
             ),
           ),
           const SizedBox(height: Espace.l),
           Semantics(
             liveRegion: true,
-            child: Text(titre, style: Typo.titre.copyWith(color: p.texte)),
+            child: Text(titre, style: Typo.titre.copyWith(color: p.titre)),
           ),
           const SizedBox(height: Espace.s),
           Text(

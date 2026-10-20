@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/auth/session.dart';
 import '../../core/config/app_config.dart';
@@ -14,6 +15,7 @@ class IndisponibleScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.dg;
     final s = ref.watch(sessionProvider);
     final version = ref.watch(infosAppProvider).version;
     return Scaffold(
@@ -26,14 +28,38 @@ class IndisponibleScreen extends ConsumerWidget {
             ),
             Expanded(
               child: s.etat == EtatSession.miseAJour
-                  ? EtatVide(
-                      icone: Icons.system_update_rounded,
-                      titre: 'Mise à jour requise',
-                      texte:
-                          "Cette version de l'application ($version) n'est plus acceptée (minimum ${s.meta?.versionMinimaleApp}). "
-                          'Installez la dernière version depuis le store ou le lien de distribution interne.',
+                  ? Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(Espace.xxl),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CercleIcone(teinte: p.bleu, icone: LucideIcons.circleArrowUp, taille: 64, tailleIcone: 28),
+                            const SizedBox(height: Espace.l),
+                            Semantics(
+                              header: true,
+                              child: Text(
+                                'Mise à jour requise',
+                                textAlign: TextAlign.center,
+                                style: Typo.sousTitre.copyWith(color: p.titre),
+                              ),
+                            ),
+                            const SizedBox(height: Espace.s),
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 340),
+                              child: Text(
+                                "Cette version de l'application ($version) n'est plus acceptée (minimum ${s.meta?.versionMinimaleApp}). "
+                                'Installez la dernière version depuis le store ou le lien de distribution interne.',
+                                textAlign: TextAlign.center,
+                                style: Typo.secondaire.copyWith(color: p.texteSecondaire),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     )
                   : EtatErreur(
+                      icone: LucideIcons.cloudOff,
                       message: '${s.erreurDemarrage ?? 'Serveur injoignable.'}\n\n${AppConfig.apiUrl}',
                       onReessayer: () => ref.read(sessionProvider.notifier).demarrer(),
                     ),
@@ -63,7 +89,7 @@ class DemarrageScreen extends StatelessWidget {
               width: 120,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(2),
-                child: LinearProgressIndicator(minHeight: 3, color: p.chevronMoyen, backgroundColor: p.chevronVide),
+                child: LinearProgressIndicator(minHeight: 3, color: p.action, backgroundColor: p.bordure),
               ),
             ),
           ],

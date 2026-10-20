@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../core/auth/session.dart';
 import '../core/models/commun.dart';
@@ -99,8 +100,8 @@ final routeurProvider = Provider<GoRouter>((ref) {
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
-      appBar: AppBar(),
-      body: const EtatVide(icone: Icons.wrong_location_outlined, titre: 'Page introuvable'),
+      appBar: AppBar(flexibleSpace: const DegradeEnTete()),
+      body: const EtatVide(icone: LucideIcons.mapPinOff, titre: 'Page introuvable'),
     ),
   );
   ref.onDispose(() {
@@ -114,8 +115,8 @@ Widget _avecId(GoRouterState state, Widget Function(int id) ecran) {
   final id = int.tryParse(state.pathParameters['id'] ?? '');
   if (id == null || id <= 0) {
     return Scaffold(
-      appBar: AppBar(),
-      body: const EtatVide(icone: Icons.search_off_rounded, titre: 'Document introuvable'),
+      appBar: AppBar(flexibleSpace: const DegradeEnTete()),
+      body: const EtatVide(icone: LucideIcons.searchX, titre: 'Document introuvable'),
     );
   }
   return ecran(id);

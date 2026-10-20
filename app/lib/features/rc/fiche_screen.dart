@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/api/dgflow_api.dart';
 import '../../core/models/models.dart';
 import '../../core/providers.dart';
 import '../../core/utils/parcours.dart';
+import '../../ui/etat_rc.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/composants.dart';
 import '../../ui/widgets/fil_parcours.dart';
@@ -85,10 +87,25 @@ class _FicheScreenState extends ConsumerState<FicheScreen> {
     final d = etat.value;
 
     return Scaffold(
+      // En-tête des pages RC du web : dégradé marine, titre `text-xl font-bold`,
+      // sous-titre `text-sm text-white/60`.
       appBar: AppBar(
+        flexibleSpace: const DegradeEnTete(),
         title: AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
-          child: Text(d?.reference ?? 'Document', key: ValueKey(d?.reference)),
+          child: Column(
+            key: ValueKey(d?.reference),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(d?.reference ?? 'Document', maxLines: 1, overflow: TextOverflow.ellipsis),
+              if (d != null)
+                Text(
+                  d.estAvenant ? 'Avenant ${d.numeroAvenant ?? ''}'.trim() : 'Rapport de consultation',
+                  style: Typo.secondaire.copyWith(color: Colors.white.withValues(alpha: 0.6)),
+                ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: d == null
@@ -106,8 +123,8 @@ class _FicheScreenState extends ConsumerState<FicheScreen> {
                       key: const ValueKey('erreur'),
                       message: messageErreur(etat.error),
                       icone: etat.error is ApiException && (etat.error as ApiException).code == 'RC_NOT_FOUND'
-                          ? Icons.search_off_rounded
-                          : Icons.cloud_off_rounded,
+                          ? LucideIcons.searchX
+                          : LucideIcons.cloudOff,
                       onReessayer: () => ref.invalidate(detailProvider(widget.rcId)),
                     )
                   : const SingleChildScrollView(key: ValueKey('squelette'), child: FicheSquelette()))
@@ -195,48 +212,100 @@ class _EnTete extends StatelessWidget {
         : a.peutRepondreInfo
         ? 'Une information vous est demandée'
         : pos.phrase;
-    final couleur = decideur || a.peutRepondreInfo
-        ? (pos.mode == ModeParcours.renvoi ? p.alerte : p.action)
+    final couleur = decideur
+        ? (pos.mode == ModeParcours.renvoi ? p.orange.vif : p.action)
+        : a.peutRepondreInfo
+        ? p.ambre.vif
         : pos.mode == ModeParcours.termine
-        ? p.succes
+        ? p.emeraude.vif
         : p.texteSecondaire;
+    final icone = a.peutRepondreInfo && !decideur
+        ? LucideIcons.messageCircleQuestion
+        : decideur
+        ? (pos.mode == ModeParcours.renvoi ? LucideIcons.undo2 : LucideIcons.circleDot)
+        : pos.mode == ModeParcours.termine
+        ? LucideIcons.checkCircle
+        : null;
     final lieu = [d.projet.nom, d.projet.ville].whereType<String>().where((s) => s.isNotEmpty).join(', ');
+
+    // Même habillage que la carte de la liste (liseré, en-tête teinté, tuile) ;
+    // ailleurs dans le circuit, liseré du type de document.
+    final h = habillageEtatRc(
+      p,
+      statut: d.statut,
+      avenant: d.estAvenant,
+      decideur: decideur,
+      infoPourMoi: a.peutRepondreInfo && !decideur,
+    );
+    final Teinte etat = h.lisere == null ? (d.estAvenant ? p.teal : p.bleu) : h.teinte;
+    final lisere = h.lisere ?? (d.estAvenant ? p.teal.plein : p.action);
+    final tuile = h.degrade;
 
     return Container(
       decoration: BoxDecoration(
         color: p.surface,
-        border: Border(bottom: BorderSide(color: p.bordure)),
+        // En-tête teinté des cartes RC (`bg-gradient-to-br from-*-50`), liseré `border-l-4`.
+        gradient: context.sombre
+            ? null
+            : LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [etat.fondDoux, p.surface]),
+        border: Border(
+          left: BorderSide(color: lisere, width: 4),
+          bottom: BorderSide(color: p.bordure),
+        ),
       ),
-      padding: const EdgeInsets.fromLTRB(Espace.l, Espace.l, Espace.l, Espace.m + 2),
+      padding: const EdgeInsets.fromLTRB(Espace.l - 4, Espace.l, Espace.l, Espace.m + 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            spacing: Espace.s,
-            runSpacing: Espace.xs,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TagType(avenant: d.estAvenant, numero: d.numeroAvenant, grand: true),
-              Pastille(libelle: d.libelle, ton: d.ton, petite: true),
-              if (d.estBc)
-                const Pastille(
-                  libelle: 'Bon de commande',
-                  ton: Ton.alerte,
-                  petite: true,
-                  icone: Icons.receipt_long_rounded,
+              // Tuile d'icône `w-8 h-8 rounded-lg` en dégradé, FileText / Layers blanc.
+              Container(
+                width: 32,
+                height: 32,
+                margin: const EdgeInsets.only(right: Espace.s + 2),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: tuile),
+                  borderRadius: BorderRadius.circular(Rayon.m),
                 ),
-              if (d.version > 1) Text('version ${d.version}', style: Typo.petit.copyWith(color: p.texteSecondaire)),
+                child: Icon(d.estAvenant ? LucideIcons.layers : LucideIcons.fileText, size: 16, color: Colors.white),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Wrap(
+                    spacing: Espace.s,
+                    runSpacing: Espace.xs,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      TagType(avenant: d.estAvenant, numero: d.numeroAvenant, grand: true),
+                      Pastille(libelle: d.libelle, ton: d.ton, petite: true),
+                      if (d.estBc)
+                        Pastille(
+                          libelle: 'Bon de commande',
+                          teinte: teinteBonDeCommande(p),
+                          petite: true,
+                          icone: LucideIcons.shoppingCart,
+                        ),
+                      if (d.version > 1)
+                        Text('version ${d.version}', style: Typo.petit.copyWith(color: p.texteSecondaire)),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: Espace.s + 2),
-          Text(d.intitule, style: Typo.titre.copyWith(color: p.texte)),
+          const SizedBox(height: Espace.m),
+          Text(d.intitule, style: Typo.titre.copyWith(color: p.titre)),
           const SizedBox(height: 3),
           Text.rich(
             TextSpan(
               children: [
+                // Code projet : `font-mono font-bold text-[#0061A7]`.
                 TextSpan(
                   text: d.projet.code ?? '—',
-                  style: TextStyle(fontWeight: FontWeight.w600, color: p.texte),
+                  style: Typo.code.copyWith(color: p.action),
                 ),
                 if (lieu.isNotEmpty) TextSpan(text: '  $lieu'),
               ],
@@ -245,24 +314,10 @@ class _EnTete extends StatelessWidget {
           ),
           const SizedBox(height: Espace.l),
           FilParcours(statut: d.statut, grand: true, anime: true),
-          const SizedBox(height: Espace.s + 2),
+          const SizedBox(height: Espace.m),
           Row(
             children: [
-              if (decideur || a.peutRepondreInfo) ...[
-                Icon(
-                  a.peutRepondreInfo && !decideur
-                      ? Icons.forum_rounded
-                      : pos.mode == ModeParcours.renvoi
-                      ? Icons.undo_rounded
-                      : Icons.radio_button_checked_rounded,
-                  size: 16,
-                  color: couleur,
-                ),
-                const SizedBox(width: 6),
-              ] else if (pos.mode == ModeParcours.termine) ...[
-                Icon(Icons.verified_rounded, size: 17, color: couleur),
-                const SizedBox(width: 6),
-              ],
+              if (icone != null) ...[Icon(icone, size: 16, color: couleur), const SizedBox(width: 6)],
               Expanded(
                 child: Text(phrase, style: Typo.libelle.copyWith(color: couleur)),
               ),
@@ -300,7 +355,7 @@ class _ContenuParcours extends ConsumerWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Os(largeur: 26, hauteur: 26, rayon: 13),
+                      Os(largeur: 40, hauteur: 40, rayon: 20),
                       SizedBox(width: Espace.m),
                       Expanded(
                         child: Column(

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/auth/session.dart';
@@ -47,7 +48,12 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
     await ref.read(pushProvider).desactiver(ref.read(apiProvider));
     if (!mounted) return;
     setState(() => _pushEnCours = false);
-    signaler(context, 'Ce téléphone ne recevra plus les notifications.', icone: Icons.notifications_off_outlined);
+    signaler(
+      context,
+      'Ce téléphone ne recevra plus les notifications.',
+      icone: LucideIcons.bellOff,
+      teinte: context.dg.gris,
+    );
   }
 
   Future<void> _deconnecter() async {
@@ -76,7 +82,7 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
     try {
       await ref.read(apiProvider).revoquerSession(s.sid);
       ref.invalidate(sessionsAppareilsProvider);
-      if (mounted) signaler(context, 'Appareil déconnecté.', icone: Icons.check_rounded);
+      if (mounted) signaler(context, 'Appareil déconnecté.');
     } catch (e) {
       if (mounted) await informer(context, 'Déconnexion impossible', messageErreur(e));
     }
@@ -90,167 +96,201 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
     final apparence = ref.watch(apparenceProvider);
     final version = ref.watch(infosAppProvider).version;
     if (profil == null) return const Scaffold();
-    final r = profil.roleActif;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profil'), automaticallyImplyLeading: false, titleSpacing: Espace.l),
+      appBar: AppBar(
+        title: const Text('Profil'),
+        automaticallyImplyLeading: false,
+        titleSpacing: Espace.l,
+        flexibleSpace: const DegradeEnTete(),
+      ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(Espace.l, Espace.l, Espace.l, Espace.xxl),
+        padding: const EdgeInsets.only(bottom: Espace.xxl),
         children: [
+          _EnTete(profil: profil),
           Padding(
-            padding: const EdgeInsets.only(bottom: Espace.xl),
-            child: Row(
+            padding: const EdgeInsets.fromLTRB(Espace.l, Espace.l, Espace.l, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  width: 62,
-                  height: 62,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(color: p.marine, shape: BoxShape.circle),
-                  child: Text(profil.initiales, style: Typo.titre.copyWith(color: Colors.white)),
+                // Section affichée seulement quand le push est disponible (Firebase configuré).
+                ListenableBuilder(
+                  listenable: push,
+                  builder: (context, _) => !push.disponible
+                      ? const SizedBox.shrink()
+                      : Section(
+                          titre: 'Notifications',
+                          icone: LucideIcons.bell,
+                          padding: const EdgeInsets.all(Espace.l),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                "Une alerte dès qu'un document arrive à votre étape ou vous est renvoyé.",
+                                style: Typo.secondaire.copyWith(color: p.texteSecondaire),
+                              ),
+                              const SizedBox(height: Espace.m),
+                              OutlinedButton.icon(
+                                onPressed: _pushEnCours ? null : _verifierPush,
+                                icon: _pushEnCours ? const Roue() : const Icon(LucideIcons.bellRing, size: 18),
+                                label: const Text('Activer / vérifier les notifications'),
+                              ),
+                              TextButton(
+                                onPressed: _pushEnCours ? null : _desactiverPush,
+                                child: const Text('Ne plus recevoir sur ce téléphone'),
+                              ),
+                            ],
+                          ),
+                        ),
                 ),
-                const SizedBox(width: Espace.l),
+                _Appareils(onRevoquer: _revoquer),
+                Section(
+                  titre: 'Apparence',
+                  icone: LucideIcons.sunMoon,
+                  nu: true,
+                  child: Segment<ThemeMode>(
+                    options: const [
+                      (ThemeMode.system, 'Système'),
+                      (ThemeMode.light, 'Clair'),
+                      (ThemeMode.dark, 'Sombre'),
+                    ],
+                    valeur: apparence,
+                    onChange: (m) => ref.read(apparenceProvider.notifier).choisir(m),
+                  ),
+                ),
+                Section(
+                  titre: 'Application',
+                  icone: LucideIcons.info,
+                  child: Column(
+                    children: [
+                      LigneInfo(libelle: 'Version', valeur: version),
+                      LigneInfo(libelle: 'Serveur', valeur: AppConfig.serveurAffiche, derniere: true),
+                    ],
+                  ),
+                ),
+                BoutonContour(
+                  teinte: p.rouge,
+                  libelle: _deconnexionEnCours ? 'Déconnexion…' : 'Se déconnecter',
+                  icone: LucideIcons.logOut,
+                  onPressed: _deconnexionEnCours ? null : _deconnecter,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bandeau d'identité, comme le pied de la sidebar du web : nom `text-base
+/// font-semibold text-white`, rôle `text-sm text-[#8BB1E0] font-medium`, puis le
+/// bouton de changement de rôle (`RoleSwitcher` : `border-[#0061A7]/40 bg-[#0061A7]/30`).
+class _EnTete extends StatelessWidget {
+  const _EnTete({required this.profil});
+
+  final Profil profil;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.dg;
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: LinearGradient(colors: [Marque.marine, Marque.marineDegrade])),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(Espace.l, Espace.s, Espace.l, Espace.l + 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                // Avatar du web : `rounded-full bg-gradient-to-br from-[#4F8FCC] to-[#0061A7] text-white font-bold`.
+                Container(
+                  width: 56,
+                  height: 56,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Marque.bleuMoyen, Marque.bleu],
+                    ),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.20), width: 2),
+                  ),
+                  child: Text(profil.initiales, style: Typo.sousTitre.copyWith(color: Colors.white)),
+                ),
+                const SizedBox(width: Espace.m + 2),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(profil.nomComplet, style: Typo.titre.copyWith(color: p.texte)),
-                      Text(profil.email, style: Typo.secondaire.copyWith(color: p.texteSecondaire)),
+                      Text(
+                        profil.nomComplet,
+                        style: Typo.corps.copyWith(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                      ),
+                      Text(
+                        profil.roleActif.libelle,
+                        style: Typo.secondaire.copyWith(fontWeight: FontWeight.w500, color: p.surMarineDoux),
+                      ),
+                      Text(
+                        profil.email,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Typo.petit.copyWith(
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white.withValues(alpha: 0.6),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
-          ),
-          Section(
-            titre: 'Rôle actif',
-            padding: EdgeInsets.zero,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                InkWell(
-                  onTap: profil.plusieursRoles ? () => ouvrirSelecteurRole(context) : null,
-                  child: Padding(
-                    padding: const EdgeInsets.all(Espace.l),
-                    child: Row(
-                      children: [
-                        Container(
-                          constraints: const BoxConstraints(minWidth: 50),
-                          height: 38,
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: p.chevronProfond,
-                            borderRadius: BorderRadius.circular(Rayon.s),
+            const SizedBox(height: Espace.m + 2),
+            if (profil.plusieursRoles)
+              Material(
+                color: Marque.bleu.withValues(alpha: 0.30),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(Rayon.m),
+                  side: BorderSide(color: Marque.bleu.withValues(alpha: 0.40)),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(Rayon.m),
+                  onTap: () => ouvrirSelecteurRole(context),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: Espace.m),
+                      child: Row(
+                        children: [
+                          const Icon(LucideIcons.arrowLeftRight, size: 16, color: Colors.white),
+                          const SizedBox(width: Espace.s),
+                          Text('Changer', style: Typo.libelle.copyWith(color: Colors.white)),
+                          const SizedBox(width: Espace.s),
+                          Expanded(
+                            child: Text(
+                              '${profil.roles.length} rôles disponibles',
+                              textAlign: TextAlign.right,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Typo.petit.copyWith(color: p.surMarineDoux),
+                            ),
                           ),
-                          child: Text(r.monogramme, style: Typo.sigle.copyWith(fontSize: 16, color: Colors.white)),
-                        ),
-                        const SizedBox(width: Espace.m),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(r.libelle, style: Typo.corpsFort.copyWith(color: p.texte)),
-                              Text(
-                                profil.plusieursRoles
-                                    ? '${profil.roles.length} rôles disponibles'
-                                    : 'Seul rôle du module RC sur votre compte',
-                                style: Typo.secondaire.copyWith(color: p.texteSecondaire),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (profil.plusieursRoles) Text('Changer', style: Typo.libelle.copyWith(color: p.action)),
-                      ],
+                          const SizedBox(width: Espace.xs),
+                          Icon(LucideIcons.chevronRight, size: 16, color: p.surMarineDoux),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                if (profil.motifLectureSeule != null)
-                  Container(
-                    padding: const EdgeInsets.all(Espace.l),
-                    decoration: BoxDecoration(
-                      border: Border(top: BorderSide(color: p.bordure)),
-                    ),
-                    child: Text(profil.motifLectureSeule!, style: Typo.secondaire.copyWith(color: p.texteSecondaire)),
-                  ),
-              ],
-            ),
-          ),
-          Section(
-            titre: 'Notifications',
-            padding: const EdgeInsets.all(Espace.l),
-            child: ListenableBuilder(
-              listenable: push,
-              builder: (context, _) => push.disponible
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          "Une alerte dès qu'un document arrive à votre étape ou vous est renvoyé.",
-                          style: Typo.secondaire.copyWith(color: p.texteSecondaire),
-                        ),
-                        const SizedBox(height: Espace.m),
-                        OutlinedButton.icon(
-                          onPressed: _pushEnCours ? null : _verifierPush,
-                          icon: _pushEnCours ? const Roue() : const Icon(Icons.notifications_active_outlined),
-                          label: const Text('Activer / vérifier les notifications'),
-                        ),
-                        TextButton(
-                          onPressed: _pushEnCours ? null : _desactiverPush,
-                          child: const Text('Ne plus recevoir sur ce téléphone'),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.notifications_off_outlined, color: p.texteTertiaire),
-                        const SizedBox(width: Espace.m),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Notifications non configurées', style: Typo.corpsFort.copyWith(color: p.texte)),
-                              Text(
-                                'Firebase n’est pas encore configuré pour cette version : consultez l’onglet Alertes, '
-                                'il reste à jour.',
-                                style: Typo.secondaire.copyWith(color: p.texteSecondaire),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-          ),
-          _Appareils(onRevoquer: _revoquer),
-          Section(
-            titre: 'Apparence',
-            nu: true,
-            child: Segment<ThemeMode>(
-              options: const [(ThemeMode.system, 'Système'), (ThemeMode.light, 'Clair'), (ThemeMode.dark, 'Sombre')],
-              valeur: apparence,
-              onChange: (m) => ref.read(apparenceProvider.notifier).choisir(m),
-            ),
-          ),
-          Section(
-            titre: 'Application',
-            child: Column(
-              children: [
-                LigneInfo(libelle: 'Version', valeur: version),
-                LigneInfo(libelle: 'Serveur', valeur: AppConfig.serveurAffiche, derniere: true),
-              ],
-            ),
-          ),
-          SizedBox(
-            height: 52,
-            child: TextButton.icon(
-              style: TextButton.styleFrom(foregroundColor: p.danger),
-              onPressed: _deconnexionEnCours ? null : _deconnecter,
-              icon: _deconnexionEnCours ? Roue(couleur: p.danger) : const Icon(Icons.logout_rounded),
-              label: const Text('Se déconnecter'),
-            ),
-          ),
-        ],
+              )
+            else
+              Text(
+                'Seul rôle du module RC sur votre compte',
+                style: Typo.petit.copyWith(fontWeight: FontWeight.w400, color: Colors.white.withValues(alpha: 0.6)),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -268,6 +308,7 @@ class _Appareils extends ConsumerWidget {
     final etat = ref.watch(sessionsAppareilsProvider);
     return Section(
       titre: 'Appareils connectés',
+      icone: LucideIcons.smartphone,
       padding: EdgeInsets.zero,
       child: switch (etat) {
         AsyncValue(:final value?) => Column(
@@ -280,28 +321,33 @@ class _Appareils extends ConsumerWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      s.plateforme == 'ios' || s.plateforme == 'android'
-                          ? Icons.smartphone_rounded
-                          : Icons.computer_rounded,
-                      color: s.courante ? p.action : p.texteSecondaire,
+                    CercleIcone(
+                      teinte: s.courante ? p.bleu : p.gris,
+                      icone: s.plateforme == 'ios' || s.plateforme == 'android'
+                          ? LucideIcons.smartphone
+                          : LucideIcons.monitor,
+                      taille: 36,
+                      tailleIcone: 18,
                     ),
                     const SizedBox(width: Espace.m),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(s.appareil ?? 'Appareil inconnu', style: Typo.corpsFort.copyWith(color: p.texte)),
+                          Text(s.appareil ?? 'Appareil inconnu', style: Typo.libelle.copyWith(color: p.texte)),
                           Text(
                             s.courante ? 'Ce téléphone' : 'Dernière activité ${Format.relatif(s.utiliseLe)}',
-                            style: Typo.secondaire.copyWith(color: s.courante ? p.succes : p.texteSecondaire),
+                            style: Typo.secondaire.copyWith(
+                              color: s.courante ? p.emeraude.vif : p.texteSecondaire,
+                              fontWeight: s.courante ? FontWeight.w500 : FontWeight.w400,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     if (!s.courante)
                       TextButton(
-                        style: TextButton.styleFrom(foregroundColor: p.danger),
+                        style: TextButton.styleFrom(foregroundColor: p.rouge.vif),
                         onPressed: () => onRevoquer(s),
                         child: const Text('Déconnecter'),
                       ),

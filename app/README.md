@@ -39,7 +39,7 @@ flutter build apk --debug
 | `lib/core/push` | FCM + notifications locales ; désactivé proprement sans configuration Firebase |
 | `lib/core/demo` | API de démonstration : mêmes règles et même JSON que l'API réelle |
 | `lib/features/*` | écrans : connexion, À traiter, Suivi, fiche, tableau, fichiers, décision, alertes, profil |
-| `lib/ui` | thème (clair / sombre), fil du parcours en chevrons, composants partagés |
+| `lib/ui` | design du web DG Flow : jetons (`jetons_web.dart`), thème clair / sombre, composants partagés — voir `../docs/design-web.md` |
 | `test/fixtures` | réponses JSON calquées sur le backend RN |
 
 ## Configuration à compléter

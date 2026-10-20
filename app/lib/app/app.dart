@@ -78,6 +78,14 @@ class _DgFlowAppState extends ConsumerState<DgFlowApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       routerConfig: ref.watch(routeurProvider),
+      // Texte de toute l'app réduit (Typo.echelle), le réglage du téléphone restant appliqué.
+      builder: (context, child) {
+        final mq = MediaQuery.of(context);
+        return MediaQuery(
+          data: mq.copyWith(textScaler: TextScaler.linear(mq.textScaler.scale(1) * Typo.echelle)),
+          child: child!,
+        );
+      },
     );
   }
 }
